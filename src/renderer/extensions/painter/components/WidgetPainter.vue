@@ -257,21 +257,25 @@
         </div>
       </template>
 
-      <Button
-        variant="secondary"
-        size="md"
-        data-testid="painter-clear-button"
-        :class="
-          cn(
-            'gap-2 rounded-lg border border-node-border bg-node text-muted-foreground hover:text-foreground',
-            !compact && 'col-span-2'
-          )
-        "
-        @click="handleClear"
-      >
-        <i class="icon-[lucide--undo-2]" />
-        {{ $t('painter.clear') }}
-      </Button>
+      <div :class="cn('flex items-center gap-1', !compact && 'col-span-2')">
+        <Button
+          variant="secondary"
+          size="md"
+          data-testid="painter-clear-button"
+          class="flex-1 border border-node-border bg-node text-muted-foreground hover:text-foreground"
+          @click="handleClear"
+        >
+          <i class="icon-[lucide--eraser]" />
+          {{ $t('painter.clear') }}
+        </Button>
+        <WidgetHistoryButtons
+          v-if="widget"
+          :can-undo
+          :can-redo
+          @undo="undo"
+          @redo="redo"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -282,16 +286,20 @@ import { computed, useTemplateRef } from 'vue'
 
 import Button from '@comfyorg/design-system/button/Button'
 import Slider from '@comfyorg/design-system/slider/Slider'
+import WidgetHistoryButtons from '@/components/widgetHistory/WidgetHistoryButtons.vue'
 import {
   PAINTER_TOOLS,
   usePainter
 } from '@/renderer/extensions/painter/composables/usePainter'
+import { widgetHistoryScope } from '@/composables/widgetHistoryScope'
+import type { LocatedWidget } from '@/composables/widgetHistoryScope'
 import type { NodeId } from '@comfyorg/graph-model/nodeId'
 import { toHexFromFormat } from '@comfyorg/shared-frontend-utils/colorUtil'
 import { cn } from '@comfyorg/tailwind-utils'
 
-const { nodeId } = defineProps<{
+const { nodeId, widget } = defineProps<{
   nodeId: NodeId
+  widget?: LocatedWidget
 }>()
 
 const modelValue = defineModel<string>({ default: '' })
@@ -323,8 +331,17 @@ const {
   handlePointerEnter,
   handlePointerLeave,
   handleInputImageLoad,
-  handleClear
-} = usePainter(nodeId, { canvasEl, cursorEl, modelValue })
+  handleClear,
+  canUndo,
+  canRedo,
+  undo,
+  redo
+} = usePainter(nodeId, {
+  canvasEl,
+  cursorEl,
+  modelValue,
+  historyScope: () => (widget ? widgetHistoryScope(widget, nodeId) : null)
+})
 
 const canvasContainerStyle = computed(() => ({
   aspectRatio: `${canvasWidth.value} / ${canvasHeight.value}`,
