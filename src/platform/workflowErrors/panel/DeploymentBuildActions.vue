@@ -44,11 +44,11 @@ import type { MissingPackGroup } from '@/platform/workflowErrors/panel/useErrorG
 import Button from '@comfyorg/design-system/button/Button'
 import { getComfyPlatformBaseUrl } from '@/config/comfyApi'
 import type { MissingModelGroup } from '@/platform/workflowErrors/missingModel/types'
-import type { MissingNodeType } from '@/platform/workflowErrors/nodeReplacement/types'
 import AgentMarks from '@/platform/workflow/deploy/components/AgentMarks.vue'
 import type { WorkspaceDeployment } from '@/platform/workspace/api/workspaceApi'
 import { useBriefCopy } from '@/platform/workspace/composables/useBriefCopy'
 import { deploymentBuildBrief } from '@/platform/workspace/deploymentBuildBrief'
+import { missingNodeTypeName } from '@/platform/workspace/missingForDeployment'
 
 const { deployment, missingPackGroups, missingModelGroups } = defineProps<{
   deployment: WorkspaceDeployment
@@ -65,16 +65,12 @@ const buildUrl = computed(() =>
     : buildsUrl
 )
 
-function nodeTypeName(nodeType: MissingNodeType): string {
-  return typeof nodeType === 'string' ? nodeType : nodeType.type
-}
-
 function brief(): string {
   return deploymentBuildBrief(
     deployment,
     missingPackGroups.map((group) => ({
       packId: group.packId,
-      nodeTypes: group.nodeTypes.map(nodeTypeName)
+      nodeTypes: group.nodeTypes.map(missingNodeTypeName)
     })),
     missingModelGroups.flatMap((group) =>
       group.models.map((model) => ({
