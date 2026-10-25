@@ -317,9 +317,11 @@ const disableAgentExtensions = async () => {
   )
   if (!result.ok) {
     reportPackSaveFailure(result, { action: 'disable_agent_created' })
-    return
   }
 
+  // Reconcile after either outcome, as the single-name action does. A refusal
+  // restores the stored names and a lost answer retains the attempted ones, so
+  // only the settings know which names the switches should now show.
   reconcileSwitchesWithStoredNames()
 }
 

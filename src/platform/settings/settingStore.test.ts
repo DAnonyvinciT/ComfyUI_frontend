@@ -755,7 +755,7 @@ describe('useSettingStore', () => {
         ])
       })
 
-      it('tells listeners nothing when the answer is lost', async () => {
+      it('does not announce a rollback when the answer is lost', async () => {
         const changes: Array<{ id: string; value: unknown }> = []
         store.addSetting(packsSetting)
         await store.set(PACKS, ['/extensions/saved/'])

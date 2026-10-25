@@ -450,6 +450,38 @@ describe('ExtensionPanel', () => {
     expect(reloadButton()).not.toBeInTheDocument()
   })
 
+  it('shows the retained names on a standalone agent when the bulk answer is lost', async () => {
+    const user = userEvent.setup()
+    const settingStore = bootWithPacks(['/extensions/cushions/'], [])
+    registerDisabledSetting()
+    useExtensionStore().registerExtension({
+      name: 'agent-made.standalone',
+      provenance: { createdBy: 'comfy-agent' }
+    })
+    vi.spyOn(api, 'storeSettings').mockRejectedValue(new Error('offline'))
+
+    renderPanel()
+    await user.click(screen.getByRole('button', { name: 'More Options' }))
+    await user.click(
+      await screen.findByRole('menuitem', {
+        name: 'Disable all agent-created'
+      })
+    )
+
+    await vi.waitFor(() =>
+      expect(useToast().toasts).toEqual([
+        expect.objectContaining({ kind: 'warning' })
+      ])
+    )
+    expect(settingStore.get('Comfy.Extension.Disabled')).toEqual([
+      'agent-made.standalone'
+    ])
+    expect(
+      screen.getByRole('switch', { name: 'agent-made.standalone' })
+    ).not.toBeChecked()
+    expect(reloadButton()).toBeEnabled()
+  })
+
   it.for([
     {
       name: 'before mount',
