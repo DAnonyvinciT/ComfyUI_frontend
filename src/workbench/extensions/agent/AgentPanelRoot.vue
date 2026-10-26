@@ -1717,14 +1717,7 @@ function onDeleteHistory(id: string): void {
   if (isCurrent) onNewChat('history_delete')
 }
 
-function onNewChat(
-  source: 'new_chat_button' | 'history_back' | 'history_delete'
-): void {
-  if (source === 'history_back') {
-    newChat()
-    agentPanelStore.startFollowingVisibleWorkflow()
-    return
-  }
+function onNewChat(source?: 'new_chat_button' | 'history_delete'): void {
   provisionalTitle.value = undefined
   composerStore.invalidateSubmission()
   cancelWorkflowSelection()
@@ -2097,7 +2090,7 @@ async function onPanelDrop(event: DragEvent): Promise<void> {
       @show-target="onShowTarget"
       @paywall-action="onPaywallAction"
       @standing-paywall-shown="onStandingPaywallShown"
-      @new-chat="onNewChat"
+      @new-chat="onNewChat('new_chat_button')"
       @start-tour="restartCoach"
       @toggle-size="agentPanelStore.toggleMaximize()"
       @close="onClosePanel"

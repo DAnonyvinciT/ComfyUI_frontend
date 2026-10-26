@@ -403,7 +403,7 @@ describe('AgentPanel', () => {
     await pending
     await nextTick()
 
-    expect(emitted().newChat).toEqual([['new_chat_button']])
+    expect(emitted().newChat).toEqual([[]])
     expect(screen.queryByRole('heading', { name: 'Chat history' })).toBeNull()
     expect(screen.queryByRole('alert')).toBeNull()
     expect(
@@ -471,7 +471,7 @@ describe('AgentPanel', () => {
     await nextTick()
 
     expect(select.mock.calls.map(([id]) => id)).toEqual(['first'])
-    expect(emitted().newChat).toEqual([['history_back']])
+    expect(emitted().newChat).toEqual([[]])
     expect(
       screen.getByRole('button', { name: 'Show chat history' })
     ).toBeVisible()

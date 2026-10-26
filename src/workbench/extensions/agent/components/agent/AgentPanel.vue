@@ -145,7 +145,7 @@ const emit = defineEmits<{
   feedback: [turnId: string, vote: 'up' | 'down' | null]
   paywallAction: [action: AgentPaywallAction, surface: AgentPaywallSurface]
   standingPaywallShown: []
-  newChat: [source: 'new_chat_button' | 'history_back']
+  newChat: []
   startTour: []
   toggleSize: []
   close: []
@@ -194,11 +194,9 @@ watch(
   { immediate: true }
 )
 
-function onNewChat(
-  source: 'new_chat_button' | 'history_back' = 'new_chat_button'
-): void {
+function onNewChat(): void {
   view.value = { screen: 'chat' }
-  emit('newChat', source)
+  emit('newChat')
 }
 function onOpenHistory(): void {
   view.value = {
@@ -234,7 +232,7 @@ function onBackFromHistory(): void {
     (view.value.selection.status === 'idle' || currentChatReady)
   )
     view.value = { screen: 'chat' }
-  else if (view.value.previousThreadId === null) onNewChat('history_back')
+  else if (view.value.previousThreadId === null) onNewChat()
   else void onSelectHistory(view.value.previousThreadId)
 }
 
