@@ -154,12 +154,23 @@ describe('Toaster', () => {
     renderToaster()
     const toast = useToast()
 
-    toast.info('Extension added', {
-      actions: [null, { label: 'Manage' }, { label: 'Keep', onClick: keep }]
-    } as unknown as Parameters<typeof toast.info>[1])
-    toast.info('Workflow saved', {
-      actions: { label: 'Open', onClick: vi.fn() }
-    } as unknown as Parameters<typeof toast.info>[1])
+    const malformedActions: unknown = [
+      null,
+      { label: 'Manage' },
+      { label: 'Keep', onClick: keep }
+    ]
+    Reflect.apply(toast.info, toast, [
+      'Extension added',
+      { actions: malformedActions }
+    ])
+    const malformedActionsObject: unknown = {
+      label: 'Open',
+      onClick: vi.fn()
+    }
+    Reflect.apply(toast.info, toast, [
+      'Workflow saved',
+      { actions: malformedActionsObject }
+    ])
     await nextTick()
 
     expect(
