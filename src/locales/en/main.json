@@ -310,6 +310,7 @@
     "cancelled": "Cancelled",
     "agentWorking": "Agent is working on this workflow",
     "agentModified": "Agent updated this workflow",
+    "agentNeedsApproval": "Agent needs your approval",
     "job": "Job",
     "asset": "{count} asset | {count} assets",
     "untitled": "Untitled",
@@ -3659,6 +3660,7 @@
       "plan": {
         "actions": {
           "choosePlan": "Choose a plan",
+          "contactSales": "Contact sales",
           "manage": "Manage",
           "resume": "Resume plan",
           "stay": "Stay on {plan}",
@@ -3746,6 +3748,11 @@
           "body": "Your bank requires additional verification to complete this payment.",
           "title": "Verify your payment"
         }
+      },
+      "parked": {
+        "title": "Something went wrong with a recent payment",
+        "body": "Contact support so we can fix it.",
+        "contactSupport": "Contact support"
       },
       "planEnded": {
         "teamTitle": "Your Team plan ended on {date}",
@@ -5871,6 +5878,10 @@
     "targetWorkflowUnavailable": "The target workflow is no longer available.",
     "canvasIsEmptyAfterTurn": "This canvas is empty — nothing was added to it. There is nothing here to run, save or export yet.",
     "targetWorkflowOpenFailed": "Couldn’t open the target workflow.",
+    "openingWorkflowChat": "Opening chat for {workflowName}…",
+    "openingChat": "Opening chat…",
+    "followedChatOpenFailed": "Couldn’t open the chat for {workflowName}.",
+    "retryFollowedChat": "Retry opening the chat for {workflowName}",
     "showTargetWorkflow": "Show target workflow: {workflowName}",
     "runApproval": {
       "lead": "Comfy Agent wants to run the workflow:",
@@ -6180,5 +6191,18 @@
       "descriptionTooLong": "Trigger line must be {max} characters or less",
       "bodyRequired": "Instructions are required"
     }
+  },
+  "lateCustomNodes": {
+    "starting": "Custom nodes are starting... {seconds} s",
+    "startingDetail": "Usually about 20 s. Their buttons and menus will show up here on their own.",
+    "stepCreating": "Creating the server for your custom nodes.\nFirst-time setup.",
+    "stepBuilding": "Building the server for your custom nodes.\nFirst-time setup for this version, takes a few minutes.",
+    "stepStarting": "Loading custom nodes.\nThis usually takes under half a minute.",
+    "waitingFor": "Waiting for: {packs}",
+    "waitingBadge": "Waiting for its pack",
+    "ready": "Custom nodes are ready",
+    "failed": "Some custom nodes didn't start",
+    "failedDetail": "Reload the page to turn on: {packs}",
+    "reload": "Reload"
   }
 }

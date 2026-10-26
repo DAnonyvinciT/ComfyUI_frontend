@@ -1,5 +1,11 @@
 import { installTouchPointerGuards } from '@/extensions/core/touchPointerGuards'
 import { t } from '@/i18n'
+import { askCpuServer } from '@/platform/lateCustomNodes/cpuServerStep'
+import {
+  importNoticingFetchFailure,
+  lateLoadingApplies,
+  loadCustomExtensionsWithDeadline
+} from '@/platform/lateCustomNodes/lateLoading'
 import { useSettingStore } from '@/platform/settings/settingStore'
 import {
   EXTENSION_FAILURES_TRUNCATED_FIELD,
@@ -83,23 +89,20 @@ function toFailureDiagnostic({
   }
 }
 
-/**
- * Import one backend-provided extension, returning the failure rather than
- * throwing, so one broken pack cannot abort the rest of the parallel load.
- *
- * Reporting deliberately does not happen here. A systemic failure — a backend
- * restart, or a proxy serving HTML for every `.js` — fails every import in the
- * list, and one report per extension is then unbounded. Off cloud that is
- * actively harmful: with no sink live, each report is held in `reportError`'s
- * 25-entry pending buffer, so a handful of broken packs during bootstrap would
- * silently crowd out every later error in the session. The batch is reported
- * once, by `reportExtensionLoadFailures`.
- */
+function importModule(url: string): Promise<unknown> {
+  return import(/* @vite-ignore */ url)
+}
+
 async function importCustomExtension(
-  ext: string
+  ext: string,
+  { late = false, retry = false } = {}
 ): Promise<ExtensionLoadFailure | undefined> {
+  const base = api.fileURL(ext)
+  const url = retry ? `${base}${base.includes('?') ? '&' : '?'}retry=1` : base
   try {
-    await import(/* @vite-ignore */ api.fileURL(ext))
+    await (late
+      ? importNoticingFetchFailure(url, importModule)
+      : importModule(url))
   } catch (error) {
     return { ext, error }
   }
@@ -181,12 +184,26 @@ export async function notifyNewAgentExtensions() {
   }
 }
 
+function createAgentExtensionDiscoveryQueue() {
+  let queued = Promise.resolve()
+  return () => {
+    queued = queued.then(notifyNewAgentExtensions).catch((cause) => {
+      reportError(cause, {
+        errorType: 'failure_recording_seen_agent_extensions',
+        surface: 'platform'
+      })
+    })
+  }
+}
+
 /**
  * Loads the core extensions, then every extension served by the backend, in
  * parallel. Core extensions load first because custom extensions may depend
- * on them.
+ * on them. Late custom extensions stop turning on when `signal` aborts.
  */
-export async function loadExtensions() {
+export async function loadExtensions(
+  signal: AbortSignal = new AbortController().signal
+) {
   const extensionStore = useExtensionStore()
   const settingStore = useSettingStore()
   extensionStore.loadBootDisabledExtensionNames(
@@ -197,6 +214,9 @@ export async function loadExtensions() {
     window.location.search
   ).has('safe')
 
+  const firstCpuServerReading = lateLoadingApplies()
+    ? askCpuServer()
+    : undefined
   const extensions = await api.getExtensions()
   extensionStore.loadExtensionPackPaths(
     extensions
@@ -219,26 +239,35 @@ export async function loadExtensions() {
     await registerCoreExtensions()
   })
   extensionStore.captureCoreExtensions()
-  const outcomes = await bootstrapTracer.settle(
-    'bootstrap/extensions-load-custom',
-    () =>
-      Promise.all(
-        extensions
-          .filter((extension) =>
-            shouldLoadExtension(extension, {
-              isCloudBuild: __DISTRIBUTION__ === 'cloud',
-              disabledPackPaths,
-              disableAllCustomExtensions
-            })
-          )
-          .map((ext) => importCustomExtension(ext))
-      )
-  )
-  reportExtensionLoadFailures(outcomes.filter((outcome) => !!outcome))
-  void notifyNewAgentExtensions().catch((cause) => {
-    reportError(cause, {
-      errorType: 'failure_recording_seen_agent_extensions',
-      surface: 'platform'
+  const customExtensions = extensions.filter((extension) =>
+    shouldLoadExtension(extension, {
+      isCloudBuild: __DISTRIBUTION__ === 'cloud',
+      disabledPackPaths,
+      disableAllCustomExtensions
     })
-  })
+  )
+  const scheduleAgentExtensionDiscovery = createAgentExtensionDiscoveryQueue()
+  if (firstCpuServerReading) {
+    await bootstrapTracer.settle('bootstrap/extensions-load-custom', () =>
+      loadCustomExtensionsWithDeadline(
+        customExtensions,
+        {
+          importScript: (ext, { retry } = {}) =>
+            importCustomExtension(ext, { late: true, retry }),
+          reportFailures: reportExtensionLoadFailures,
+          afterLateRegistration: scheduleAgentExtensionDiscovery
+        },
+        signal,
+        firstCpuServerReading
+      )
+    )
+  } else {
+    const outcomes = await bootstrapTracer.settle(
+      'bootstrap/extensions-load-custom',
+      () =>
+        Promise.all(customExtensions.map((ext) => importCustomExtension(ext)))
+    )
+    reportExtensionLoadFailures(outcomes.filter((outcome) => !!outcome))
+  }
+  scheduleAgentExtensionDiscovery()
 }
