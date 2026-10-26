@@ -155,11 +155,9 @@ describe('Toaster', () => {
     const toast = useToast()
 
     toast.info('Extension added', {
-      // Reaches the store from untyped `extensionManager.toast` callers.
       actions: [null, { label: 'Manage' }, { label: 'Keep', onClick: keep }]
     } as unknown as Parameters<typeof toast.info>[1])
     toast.info('Workflow saved', {
-      // An object is easy to confuse with the singular `action`.
       actions: { label: 'Open', onClick: vi.fn() }
     } as unknown as Parameters<typeof toast.info>[1])
     await nextTick()
