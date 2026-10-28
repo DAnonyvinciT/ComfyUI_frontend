@@ -72,7 +72,7 @@
         </div>
         <Button
           v-if="state.kind === 'noPlan' && canTopUp"
-          variant="secondary"
+          :variant="addCreditsVariant"
           size="md"
           class="shrink-0"
           @click="emit('addCredits')"
@@ -128,7 +128,7 @@
           </div>
           <Button
             v-if="canTopUp"
-            variant="secondary"
+            :variant="addCreditsVariant"
             size="md"
             class="shrink-0"
             @click="emit('addCredits')"
@@ -152,13 +152,19 @@ import {
   formatCredits,
   formatCreditsFromCents
 } from '@/base/credits/comfyCredits'
-import Button from '@/components/ui/button/Button.vue'
+import Button from '@comfyorg/design-system/button/Button'
 import type { CreditsCardState } from '@/platform/billing/components/billingTab/creditsCard'
 
-const { state, canTopUp, planCreditNote } = defineProps<{
+const {
+  state,
+  canTopUp,
+  planCreditNote,
+  addCreditsVariant = 'secondary'
+} = defineProps<{
   state: CreditsCardState
   canTopUp: boolean
   planCreditNote: string | null
+  addCreditsVariant?: 'secondary' | 'inverted'
 }>()
 
 const emit = defineEmits<{

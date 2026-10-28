@@ -301,7 +301,6 @@ export const useExtensionStore = defineStore('extension', () => {
   const hasThirdPartyExtensions = computed(() => {
     return extensions.value.some((ext) => !isCoreExtension(ext.name))
   })
-  const hasAgentExtensions = computed(() => agentExtensions.value.length > 0)
 
   return {
     extensions,
@@ -309,9 +308,9 @@ export const useExtensionStore = defineStore('extension', () => {
     enabledExtensions,
     extensionPackPaths,
     isExtensionInstalled,
+    isAgentCreatedExtension,
     isExtensionEnabled,
     isExtensionReadOnly,
-    isAgentCreatedExtension,
     getAgentExtensionPackPath,
     registerExtension,
     unregisterExtension,
@@ -338,7 +337,6 @@ export const useExtensionStore = defineStore('extension', () => {
     loadDisabledExtensionNames,
     captureCoreExtensions,
     isCoreExtension,
-    hasThirdPartyExtensions,
-    hasAgentExtensions
+    hasThirdPartyExtensions
   }
 })

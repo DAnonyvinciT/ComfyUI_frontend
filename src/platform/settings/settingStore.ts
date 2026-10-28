@@ -195,10 +195,13 @@ export const useSettingStore = defineStore('setting', () => {
           'Setting values must be loaded before any setting is registered.'
         )
       }
-      settingValues.value = await retry(() => api.getSettings(), {
-        retries: 3,
-        delay: (attempt) => Math.min(1000 * Math.pow(2, attempt), 8000)
-      })
+      settingValues.value = await retry(
+        () => api.getSettings({ skipStatusRetry: true }),
+        {
+          retries: 3,
+          delay: (attempt) => Math.min(1000 * Math.pow(2, attempt), 8000)
+        }
+      )
       await migrateZoomThresholdToFontSize()
       await migrateCanvasNavigationOverrides()
     },
@@ -278,14 +281,6 @@ export const useSettingStore = defineStore('setting', () => {
     return persistSetting(key, value, { revertOnFailure: true })
   }
 
-  /**
-   * Undo the local half of a write the server did not take. Listeners saw the
-   * optimistic value through the same `onChange` path the forward write uses,
-   * so restoring `settingValues` on its own leaves every `<id>.change` listener
-   * holding a value the store rejected. Reverse the pair through `onChange` too
-   * so the two directions cannot drift. The write-token guard keeps a revert
-   * from overwriting a later write that did land.
-   */
   async function revertSettingLocally<K extends keyof Settings>(
     key: K,
     hadValue: boolean,

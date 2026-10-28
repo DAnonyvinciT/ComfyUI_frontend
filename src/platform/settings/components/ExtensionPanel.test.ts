@@ -369,16 +369,14 @@ describe('ExtensionPanel', () => {
     )
     const extensionStore = useExtensionStore()
     extensionStore.registerExtension({ name: 'Manual.Toolbar' })
+    extensionStore.registerExtension({ name: 'agentic.toolbar' })
+    extensionStore.registerExtension({ name: 'agent.cushions.toolbar' })
     extensionStore.registerExtension({
-      name: 'agent.cushions.toolbar',
+      name: 'agent-made.standalone',
       provenance: {
         createdBy: 'comfy-agent',
         summary: 'Adds cushion controls'
       }
-    })
-    extensionStore.registerExtension({
-      name: 'agent-made.standalone',
-      provenance: { createdBy: 'comfy-agent' }
     })
     const storeSettings = vi
       .spyOn(api, 'storeSettings')
@@ -396,6 +394,7 @@ describe('ExtensionPanel', () => {
       screen.queryByRole('switch', { name: 'Manual.Toolbar' })
     ).not.toBeInTheDocument()
 
+    await user.type(screen.getByRole('combobox'), 'cushions')
     await user.click(screen.getByRole('button', { name: 'More Options' }))
     await user.click(
       await screen.findByRole('menuitem', {
@@ -407,11 +406,17 @@ describe('ExtensionPanel', () => {
       'Comfy.Extension.Disabled': ['agent-made.standalone'],
       'Comfy.Extension.DisabledPacks': ['/extensions/cushions/']
     })
+    await user.clear(screen.getByRole('combobox'))
+    await user.click(screen.getByRole('button', { name: 'All' }))
     await vi.waitFor(() =>
       expect(
         screen.getByRole('switch', { name: 'agent-made.standalone' })
       ).not.toBeChecked()
     )
+    expect(screen.getByRole('switch', { name: 'Manual.Toolbar' })).toBeChecked()
+    expect(
+      screen.getByRole('switch', { name: 'agentic.toolbar' })
+    ).toBeChecked()
     expect(
       screen.getByRole('switch', { name: 'agent.cushions.toolbar' })
     ).toBeChecked()
@@ -507,5 +512,75 @@ describe('ExtensionPanel', () => {
     expect(
       screen.queryByRole('switch', { name: 'Manual.Toolbar' })
     ).not.toBeInTheDocument()
+  })
+
+  it('labels a core extension created by Agent as created by Agent', () => {
+    const extensionStore = useExtensionStore()
+    extensionStore.registerExtension({ name: 'agent.cushions.toolbar' })
+    extensionStore.captureCoreExtensions()
+
+    renderPanel()
+
+    expect(
+      within(
+        screen.getByRole('row', { name: /agent\.cushions\.toolbar/ })
+      ).getByText('Created by agent')
+    ).toBeVisible()
+  })
+
+  it('shows an extension registered after the panel mounted as enabled, with no reload prompt', async () => {
+    registerDisabledSetting()
+    registerExtensions('Alpha')
+    renderPanel()
+    expect(reloadButton()).not.toBeInTheDocument()
+
+    registerExtensions('LateArrival')
+
+    expect(
+      await screen.findByRole('switch', { name: 'LateArrival' })
+    ).toBeChecked()
+    expect(reloadButton()).not.toBeInTheDocument()
+  })
+
+  it('keeps a switch edit still awaiting its save when another extension registers late', async () => {
+    const user = userEvent.setup()
+    registerDisabledSetting()
+    registerExtensions('Alpha')
+    let acknowledge = () => {}
+    vi.spyOn(useSettingStore(), 'setOrRevert').mockReturnValue(
+      new Promise((resolve) => {
+        acknowledge = () => resolve({ ok: true, outcome: 'saved' })
+      })
+    )
+    renderPanel()
+
+    await user.click(screen.getByRole('switch', { name: 'Alpha' }))
+    expect(screen.getByRole('switch', { name: 'Alpha' })).not.toBeChecked()
+
+    registerExtensions('LateArrival')
+
+    expect(
+      await screen.findByRole('switch', { name: 'LateArrival' })
+    ).toBeChecked()
+    expect(screen.getByRole('switch', { name: 'Alpha' })).not.toBeChecked()
+    acknowledge()
+  })
+
+  it('disables the bulk action when all Agent extensions are read-only', async () => {
+    const user = userEvent.setup()
+    const extensionStore = useExtensionStore()
+    extensionStore.registerExtension({
+      name: 'pysssss.Locking',
+      provenance: { createdBy: 'comfy-agent' }
+    })
+
+    renderPanel()
+
+    await user.click(screen.getByRole('button', { name: 'More Options' }))
+    expect(
+      await screen.findByRole('menuitem', {
+        name: 'Disable all agent-created'
+      })
+    ).toHaveAttribute('aria-disabled', 'true')
   })
 })

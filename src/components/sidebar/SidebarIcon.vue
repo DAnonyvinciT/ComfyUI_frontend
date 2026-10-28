@@ -10,7 +10,7 @@
     "
     variant="muted-textonly"
     size="unset"
-    :aria-label="computedTooltip"
+    :aria-label="accessibleName"
     @click="emit('click', $event)"
     @contextmenu="emit('contextmenu', $event)"
   >
@@ -19,6 +19,7 @@
         <div class="sidebar-icon-wrapper relative">
           <i
             v-if="typeof icon === 'string'"
+            class="size-5"
             :class="icon + ' side-bar-button-icon'"
           />
           <component
@@ -37,6 +38,12 @@
           >
             {{ overlayValue }}
           </span>
+          <span
+            v-if="provenanceBadge"
+            class="sidebar-icon-provenance-badge absolute -top-1 -left-1 min-w-[16px] rounded-full bg-secondary py-0.25 text-2xs leading-[14px] font-medium text-foreground"
+          >
+            {{ provenanceBadge }}
+          </span>
         </div>
       </slot>
       <!-- w-max sizes the label to the rail instead of the padding-inset
@@ -54,7 +61,7 @@
 import { computed } from 'vue'
 import type { Component } from 'vue'
 
-import Button from '@/components/ui/button/Button.vue'
+import Button from '@comfyorg/design-system/button/Button'
 import { st } from '@/i18n'
 import { cn } from '@comfyorg/tailwind-utils'
 
@@ -65,6 +72,8 @@ const {
   tooltipSuffix = '',
   iconBadge = '',
   badgeClass = '',
+  provenanceBadge = '',
+  provenanceLabel = '',
   label = '',
   isSmall = false
 } = defineProps<{
@@ -74,6 +83,8 @@ const {
   tooltipSuffix?: string
   iconBadge?: string | (() => string | null)
   badgeClass?: string
+  provenanceBadge?: string
+  provenanceLabel?: string
   label?: string
   isSmall?: boolean
 }>()
@@ -94,6 +105,11 @@ const computedTooltip = computed(() => {
   const text = tooltip || label
   return st(text, text) + tooltipSuffix
 })
+const accessibleName = computed(() =>
+  provenanceLabel
+    ? `${computedTooltip.value} (${provenanceLabel})`
+    : computedTooltip.value
+)
 </script>
 
 <style>
