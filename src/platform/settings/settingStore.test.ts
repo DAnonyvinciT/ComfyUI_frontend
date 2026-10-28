@@ -595,17 +595,43 @@ describe('useSettingStore', () => {
 
       it.for([
         {
-          label: 'answers with an error status',
+          label: 'rejects the request before storing it',
+          storeSetting: () =>
+            Promise.resolve(
+              new Response(null, { status: 400, statusText: 'Bad Request' })
+            ),
+          expected: {
+            ok: false,
+            reason: 'refused',
+            detail: '400 Bad Request'
+          },
+          remaining: ['/extensions/saved/']
+        },
+        {
+          label: 'answers with a server error that says nothing about storing',
           storeSetting: () =>
             Promise.resolve(
               new Response(null, { status: 500, statusText: 'Server Error' })
             ),
           expected: {
             ok: false,
-            reason: 'refused',
+            reason: 'indeterminate',
             detail: '500 Server Error'
           },
-          remaining: ['/extensions/saved/']
+          remaining: ['/extensions/rejected/']
+        },
+        {
+          label: 'answers 401 the way Cloud does when its own save fails',
+          storeSetting: () =>
+            Promise.resolve(
+              new Response(null, { status: 401, statusText: 'Unauthorized' })
+            ),
+          expected: {
+            ok: false,
+            reason: 'indeterminate',
+            detail: '401 Unauthorized'
+          },
+          remaining: ['/extensions/rejected/']
         },
         {
           label: 'never answers at all',
@@ -667,7 +693,7 @@ describe('useSettingStore', () => {
 
         acknowledge[1](new Response())
         expect(await second).toEqual({ ok: true, outcome: 'saved' })
-        acknowledge[0](new Response(null, { status: 500 }))
+        acknowledge[0](new Response(null, { status: 400 }))
         expect(await first).toMatchObject({ ok: false })
 
         expect(store.get(PACKS)).toEqual(['/extensions/second/'])
@@ -697,7 +723,7 @@ describe('useSettingStore', () => {
           expect(await second).toEqual({ ok: true, outcome: 'saved' })
 
           acknowledge.get(JSON.stringify(['/extensions/first/']))?.(
-            new Response(null, { status: 500 })
+            new Response(null, { status: 400 })
           )
           expect(await first).not.toEqual({ ok: true, outcome: 'saved' })
 
@@ -752,7 +778,7 @@ describe('useSettingStore', () => {
         await store.set(PACKS, ['/extensions/saved/'])
         store.onSettingChanged((change) => changes.push(change))
         vi.mocked(api.storeSetting).mockResolvedValue(
-          new Response(null, { status: 500, statusText: 'Server Error' })
+          new Response(null, { status: 400, statusText: 'Bad Request' })
         )
 
         await store.setOrRevert(PACKS, ['/extensions/rejected/'])
@@ -806,7 +832,7 @@ describe('useSettingStore', () => {
 
         acknowledge[1](new Response())
         await second
-        acknowledge[0](new Response(null, { status: 500 }))
+        acknowledge[0](new Response(null, { status: 400 }))
         await first
 
         expect(store.get(PACKS)).toEqual(['/extensions/second/'])
@@ -832,6 +858,38 @@ describe('useSettingStore', () => {
         const changes: Array<{ id: string; value: unknown }> = []
         store.onSettingChanged(({ id, value }) => changes.push({ id, value }))
         vi.mocked(api.storeSettings).mockResolvedValue(
+          new Response(null, { status: 400, statusText: 'Bad Request' })
+        )
+
+        expect(
+          await store.setManyOrRevert({
+            [PACKS]: ['/extensions/rejected/'],
+            [SEEN]: ['agent.seen', 'agent.new']
+          })
+        ).toMatchObject({ ok: false, reason: 'refused' })
+
+        expect(store.get(PACKS)).toEqual(['/extensions/saved/'])
+        expect(store.get(SEEN)).toEqual(['agent.seen'])
+        expect(changes.slice(-2)).toEqual([
+          { id: PACKS, value: ['/extensions/saved/'] },
+          { id: SEEN, value: ['agent.seen'] }
+        ])
+      })
+
+      it('keeps the whole batch when the answer does not say whether it stored', async () => {
+        const SEEN = 'Comfy.Extension.SeenAgentExtensions'
+        store.addSetting(packsSetting)
+        store.addSetting({
+          id: SEEN,
+          name: SEEN,
+          type: 'hidden',
+          defaultValue: [] as string[]
+        })
+        await store.setMany({
+          [PACKS]: ['/extensions/saved/'],
+          [SEEN]: ['agent.seen']
+        })
+        vi.mocked(api.storeSettings).mockResolvedValue(
           new Response(null, { status: 500, statusText: 'Server Error' })
         )
 
@@ -840,14 +898,10 @@ describe('useSettingStore', () => {
             [PACKS]: ['/extensions/rejected/'],
             [SEEN]: ['agent.seen', 'agent.new']
           })
-        ).toMatchObject({ ok: false })
+        ).toMatchObject({ ok: false, reason: 'indeterminate' })
 
-        expect(store.get(PACKS)).toEqual(['/extensions/saved/'])
-        expect(store.get(SEEN)).toEqual(['agent.seen'])
-        expect(changes.slice(-2)).toEqual([
-          { id: PACKS, value: ['/extensions/saved/'] },
-          { id: SEEN, value: ['agent.seen'] }
-        ])
+        expect(store.get(PACKS)).toEqual(['/extensions/rejected/'])
+        expect(store.get(SEEN)).toEqual(['agent.seen', 'agent.new'])
       })
 
       it('keeps the whole batch when the answer is lost', async () => {

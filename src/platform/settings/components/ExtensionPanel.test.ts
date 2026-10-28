@@ -280,7 +280,7 @@ describe('ExtensionPanel', () => {
       const user = userEvent.setup()
       const settingStore = bootWithPacks(['/extensions/agent-cushions/'], [])
       vi.spyOn(api, 'storeSetting').mockResolvedValue(
-        new Response(null, { status: 500, statusText: 'Server Error' })
+        new Response(null, { status: 400, statusText: 'Bad Request' })
       )
 
       const panel = renderPanel()
@@ -289,7 +289,7 @@ describe('ExtensionPanel', () => {
         expect(useToast().toasts).toContainEqual(
           expect.objectContaining({
             kind: 'warning',
-            title: expect.stringContaining('500 Server Error')
+            title: expect.stringContaining('400 Bad Request')
           })
         )
       )
@@ -303,6 +303,31 @@ describe('ExtensionPanel', () => {
 
       expect(packSwitch('agent-cushions')).toBeChecked()
       expect(reloadButton()).not.toBeInTheDocument()
+    })
+
+    it('keeps the switch off when the answer does not say whether it stored', async () => {
+      const user = userEvent.setup()
+      const settingStore = bootWithPacks(['/extensions/agent-cushions/'], [])
+      vi.spyOn(api, 'storeSetting').mockResolvedValue(
+        new Response(null, { status: 500, statusText: 'Server Error' })
+      )
+
+      renderPanel()
+      await user.click(packSwitch('agent-cushions'))
+      await vi.waitFor(() =>
+        expect(useToast().toasts).toContainEqual(
+          expect.objectContaining({
+            kind: 'warning',
+            title: expect.stringContaining('500 Server Error')
+          })
+        )
+      )
+
+      expect(packSwitch('agent-cushions')).not.toBeChecked()
+      expect(settingStore.get(DISABLED_PACKS)).toEqual([
+        '/extensions/agent-cushions/'
+      ])
+      expect(reloadButton()).toBeVisible()
     })
 
     it('keeps the switch off and offers the reload when the save answer is lost', async () => {
@@ -434,7 +459,7 @@ describe('ExtensionPanel', () => {
     )
     registerExtensions('agent.cushions.toolbar')
     vi.spyOn(api, 'storeSettings').mockResolvedValue(
-      new Response(null, { status: 500, statusText: 'Server Error' })
+      new Response(null, { status: 400, statusText: 'Bad Request' })
     )
 
     renderPanel()

@@ -44,13 +44,20 @@ type LocalSettingWrite<TValue> =
 
 type SettingWriteFailure = Extract<SettingWriteResult, { ok: false }>
 
-/**
- * Whether a failure is evidence the backend did not take the write. A rollback
- * is a claim about the server, so it is only honest when a response arrived:
- * `refused` is an answer, `unreachable` is no answer at all and the backend may
- * hold the value either way. Reverting on `unreachable` undoes writes the server
- * accepted, and the user watches the setting snap back for no reason.
- */
+const STATUSES_THAT_REJECT_BEFORE_STORING = new Set([
+  400, 404, 405, 413, 414, 415, 422, 431
+])
+
+function classifyRefusal(response: Response): SettingWriteFailure {
+  return {
+    ok: false,
+    reason: STATUSES_THAT_REJECT_BEFORE_STORING.has(response.status)
+      ? 'refused'
+      : 'indeterminate',
+    detail: `${response.status} ${response.statusText}`
+  }
+}
+
 function provesNonCommit(failure: SettingWriteFailure) {
   return failure.reason === 'refused'
 }
@@ -71,11 +78,7 @@ async function sendSettings(
     return { ok: false, reason: 'unreachable', detail: toError(cause).message }
   }
   if (response.ok) return undefined
-  return {
-    ok: false,
-    reason: 'refused',
-    detail: `${response.status} ${response.statusText}`
-  }
+  return classifyRefusal(response)
 }
 
 /** Settings with no `onChange` to undo, so a failed write can be reverted. */
@@ -309,13 +312,7 @@ export const useSettingStore = defineStore('setting', () => {
     let failure: SettingWriteFailure | undefined
     try {
       const response = await api.storeSetting(key, local.newValue)
-      if (!response.ok) {
-        failure = {
-          ok: false,
-          reason: 'refused',
-          detail: `${response.status} ${response.statusText}`
-        }
-      }
+      if (!response.ok) failure = classifyRefusal(response)
     } catch (cause) {
       if (!revertOnFailure) throw cause
       failure = {

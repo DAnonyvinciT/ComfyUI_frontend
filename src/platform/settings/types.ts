@@ -222,12 +222,18 @@ type SettingTelemetryOptions =
 
 /**
  * Outcome of one setting write; only `saved` was acknowledged by the backend.
- * `refused` is an answer proving non-commit; `unreachable` is no answer, so the
+ * `refused` is an answer that proves the write was rejected before the backend
+ * could store it. `indeterminate` is an answer that does not say whether it
+ * stored the value, and `unreachable` is no answer at all; under both the
  * backend may hold the value either way.
  */
 export type SettingWriteResult =
   | { ok: true; outcome: 'saved' | 'unchanged' | 'superseded' }
-  | { ok: false; reason: 'refused' | 'unreachable'; detail: string }
+  | {
+      ok: false
+      reason: 'refused' | 'indeterminate' | 'unreachable'
+      detail: string
+    }
 
 export interface SettingParams<TValue = unknown> extends FormItem {
   id: keyof Settings

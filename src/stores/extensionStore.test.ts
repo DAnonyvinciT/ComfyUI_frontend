@@ -179,7 +179,7 @@ describe('extensionStore', () => {
 
     it('leaves the pack enabled when the server refuses the write', async () => {
       vi.mocked(api.storeSetting).mockResolvedValue(
-        new Response(null, { status: 500, statusText: 'Server Error' })
+        new Response(null, { status: 400, statusText: 'Bad Request' })
       )
 
       const result = await store.setExtensionPackEnabled(
@@ -209,7 +209,7 @@ describe('extensionStore', () => {
 
     it('still runs a queued save after the one before it is refused', async () => {
       vi.mocked(api.storeSetting).mockResolvedValueOnce(
-        new Response(null, { status: 500, statusText: 'Server Error' })
+        new Response(null, { status: 400, statusText: 'Bad Request' })
       )
 
       const first = store.setExtensionPackEnabled('/extensions/a/', false)
@@ -308,7 +308,7 @@ describe('extensionStore', () => {
     it('leaves the stored names alone when the server refuses the write', async () => {
       settingStore.addSetting(DISABLED_NAMES_SETTING)
       vi.mocked(api.storeSetting).mockResolvedValue(
-        new Response(null, { status: 500, statusText: 'Server Error' })
+        new Response(null, { status: 400, statusText: 'Bad Request' })
       )
 
       const result = await store.setExtensionEnabledStates({

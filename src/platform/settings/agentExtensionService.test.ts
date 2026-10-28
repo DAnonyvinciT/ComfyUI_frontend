@@ -133,7 +133,7 @@ describe('disableAgentExtensions', () => {
 
   it('treats a refused response as a failure and restores both lists', async () => {
     vi.mocked(api.storeSettings).mockResolvedValue(
-      new Response(null, { status: 500, statusText: 'Server Error' })
+      new Response(null, { status: 400, statusText: 'Bad Request' })
     )
     const reload = vi.spyOn(window.location, 'reload').mockReturnValue()
 
@@ -148,7 +148,7 @@ describe('disableAgentExtensions', () => {
       '/extensions/missing/'
     ])
     expect(reportError).toHaveBeenCalledExactlyOnceWith(
-      '500 Server Error',
+      '400 Bad Request',
       expect.objectContaining({ tags: { reason: 'refused' } })
     )
   })
