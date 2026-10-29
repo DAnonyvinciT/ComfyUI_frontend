@@ -134,7 +134,7 @@ import AppSingleSelect from '@/components/common/AppSingleSelect.vue'
 import Button from '@comfyorg/design-system/button/Button'
 import { useModelTypes } from '@/platform/assets/composables/useModelTypes'
 import type { ModelFileUpload } from '@/platform/workspace/composables/useUploadModelFile'
-import { formatSize } from '@/utils/formatUtil'
+import { formatSize } from '@comfyorg/shared-frontend-utils/formatUtil'
 
 const { state, folders } = defineProps<{
   state: Exclude<ModelFileUpload, { status: 'idle' }>
