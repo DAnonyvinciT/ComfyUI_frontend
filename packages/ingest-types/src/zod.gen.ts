@@ -5827,6 +5827,10 @@ export const zGetFeaturesResponse = z.object({
     ])
     .optional()
     .default('control'),
+  'agent-credit-usage-summary': z
+    .enum(['control', 'treatment'])
+    .optional()
+    .default('control'),
   'agent-starter-prompt-set': z
     .enum(['control', 'test'])
     .optional()

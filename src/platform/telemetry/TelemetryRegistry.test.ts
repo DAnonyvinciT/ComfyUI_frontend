@@ -8,6 +8,7 @@ import { TelemetryRegistry } from '@comfyorg/telemetry/TelemetryRegistry'
 import type {
   AgentConsentResolvedMetadata,
   AgentConsentShownMetadata,
+  AgentCreditUsageExposureMetadata,
   AgentCreditTransitionNoticeMetadata,
   AgentEntryButtonClickedMetadata,
   AgentErrorMetadata,
@@ -385,6 +386,10 @@ describe('TelemetryRegistry', () => {
     const creditTransitionNoticeMetadata = {
       action: 'shown'
     } satisfies AgentCreditTransitionNoticeMetadata
+    const creditUsageExposureMetadata = {
+      variant: 'treatment',
+      '$feature/agent-credit-usage-summary': 'treatment'
+    } satisfies AgentCreditUsageExposureMetadata
 
     const cases = [
       {
@@ -411,6 +416,12 @@ describe('TelemetryRegistry', () => {
           registry.trackAgentCreditTransitionNotice(
             creditTransitionNoticeMetadata
           )
+      },
+      {
+        method: 'trackAgentCreditUsageExposure',
+        expected: { ...creditUsageExposureMetadata },
+        invoke: (registry) =>
+          registry.trackAgentCreditUsageExposure(creditUsageExposureMetadata)
       },
       {
         method: 'trackAgentMessageFeedback',
