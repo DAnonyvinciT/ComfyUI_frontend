@@ -7,7 +7,10 @@ import type { UploadModelSuccess } from '@/platform/assets/composables/useUpload
 import { modelFileUploadApi } from '@/platform/workspace/api/modelFileUploadApi'
 import type { ModelFileUploadResult } from '@/platform/workspace/api/modelFileUploadApi'
 import { reportError } from '@comfyorg/telemetry/reportError'
-import { useAssetDownloadStore } from '@/stores/assetDownloadStore'
+import {
+  isDownloadCancelled,
+  useAssetDownloadStore
+} from '@/stores/assetDownloadStore'
 
 const MODEL_FILE_EXTENSION = '.safetensors'
 const DEFAULT_MODEL_TYPE = 'loras'
@@ -30,7 +33,7 @@ export type ModelFileUpload =
   | { status: 'uploading'; file: File; sent: number }
   | { status: 'saving'; file: File }
   | { status: 'done'; file: File; modelType: string }
-  | { status: 'failed'; file: File; error: string }
+  | { status: 'failed'; file: File; error: string; taskId?: string }
 
 /**
  * One model file chosen from the computer and uploaded into the workspace
@@ -101,18 +104,47 @@ export function useUploadModelFile() {
           state.value = {
             status: 'failed',
             file,
+            taskId,
             error: download.error || t('assetBrowser.fileUpload.failed')
           }
-        } else if (download.status === 'cancelled') {
+        } else if (isDownloadCancelled(download.status)) {
           state.value = {
             status: 'failed',
             file,
+            taskId,
             error: t('assetBrowser.fileUpload.cancelled')
           }
         }
       },
       { immediate: true }
     )
+  }
+
+  async function settleFailedTask(
+    failed: Extract<ModelFileUpload, { status: 'failed' }>,
+    taskId: string,
+    type: string
+  ): Promise<boolean> {
+    const run = generation
+    const cancelled = await downloads.cancelDownload(taskId)
+    if (run !== generation) return false
+    const task = downloads.downloadList.find((d) => d.taskId === taskId)
+    if (task?.status === 'completed') {
+      state.value = {
+        status: 'done',
+        file: failed.file,
+        modelType: task.modelType ?? type
+      }
+      return false
+    }
+    if (cancelled.ok) return true
+    reportError(cancelled.error, {
+      surface: 'assets',
+      errorType: 'asset_download_cancellation_failure',
+      level: 'warning'
+    })
+    state.value = failed
+    return false
   }
 
   async function upload(): Promise<UploadModelSuccess | null> {
@@ -125,6 +157,13 @@ export function useUploadModelFile() {
     const type = modelType.value
     controller = new AbortController()
     state.value = { status: 'uploading', file, sent: 0 }
+
+    if (
+      current.status === 'failed' &&
+      current.taskId &&
+      !(await settleFailedTask(current, current.taskId, type))
+    )
+      return null
 
     const result = await modelFileUploadApi.uploadModelFile(file, {
       tags: ['models', type],

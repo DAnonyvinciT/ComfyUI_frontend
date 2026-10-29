@@ -326,6 +326,7 @@ describe('useUploadModelFile', () => {
     expect(upload.state.value).toEqual({
       status: 'failed',
       file: lora,
+      taskId: TASK_ID,
       error: 'This file is not a valid .safetensors file.'
     })
   })
@@ -371,6 +372,7 @@ describe('useUploadModelFile', () => {
     expect(upload.state.value).toEqual({
       status: 'failed',
       file: lora,
+      taskId: TASK_ID,
       error: enMessages.progressToast.taskUnavailable
     })
   })
@@ -389,6 +391,7 @@ describe('useUploadModelFile', () => {
     expect(upload.state.value).toEqual({
       status: 'failed',
       file: lora,
+      taskId: TASK_ID,
       error: 'Upload canceled.'
     })
   })
@@ -407,6 +410,34 @@ describe('useUploadModelFile', () => {
     taskUpdate('completed', undefined, otherImport)
     await nextTick()
     expect(upload.state.value).toEqual({ status: 'saving', file: lora })
+  })
+
+  it('keeps the failure and sends nothing when the failed library task cannot be canceled', async () => {
+    const refused = new Error('Server returned 500')
+    vi.spyOn(taskService, 'cancelTask').mockResolvedValue({
+      ok: false,
+      error: refused
+    })
+    const { upload } = setup()
+    const server = pendingUpload()
+    upload.choose(lora)
+    const first = upload.upload()
+    server.finish({ ok: true, taskId: TASK_ID })
+    await first
+    taskUpdate('failed', 'Storage was busy.')
+    await nextTick()
+    const failed = upload.state.value
+
+    await expect(upload.upload()).resolves.toBeNull()
+
+    expect(upload.state.value).toEqual(failed)
+    expect(modelFileUploadApi.uploadModelFile).toHaveBeenCalledOnce()
+    expect(reportError).toHaveBeenCalledWith(
+      refused,
+      expect.objectContaining({
+        errorType: 'asset_download_cancellation_failure'
+      })
+    )
   })
 
   it('ignores an upload that answers after the person went back', async () => {
