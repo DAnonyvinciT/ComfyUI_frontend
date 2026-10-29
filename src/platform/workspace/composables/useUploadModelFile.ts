@@ -11,6 +11,7 @@ import {
   isDownloadCancelled,
   useAssetDownloadStore
 } from '@/stores/assetDownloadStore'
+import type { AssetDownloadStatus } from '@/stores/assetDownloadStore'
 
 const MODEL_FILE_EXTENSION = '.safetensors'
 const DEFAULT_MODEL_TYPE = 'loras'
@@ -39,7 +40,10 @@ type ReadyToSend = Extract<ModelFileUpload, { status: 'chosen' | 'failed' }>
 
 interface FollowedTask {
   id: string
-  outcome: () => ModelFileUpload | undefined
+  file: File
+  modelType: string
+  status?: AssetDownloadStatus
+  error?: string
   settling: boolean
 }
 
@@ -67,7 +71,6 @@ export function useUploadModelFile() {
   let controller: AbortController | undefined
   let task: FollowedTask | undefined
   let stopTaskWatch: WatchStopHandle | undefined
-  let endCancellationWait: (() => void) | undefined
   let generation = 0
 
   function stopFollowing() {
@@ -80,7 +83,6 @@ export function useUploadModelFile() {
     generation++
     controller?.abort()
     stopFollowing()
-    endCancellationWait?.()
   }
 
   onScopeDispose(stop)
@@ -103,28 +105,24 @@ export function useUploadModelFile() {
     return failure.message ?? t('assetBrowser.fileUpload.failed')
   }
 
-  function taskOutcome(
-    taskId: string,
-    file: File,
-    type: string
-  ): ModelFileUpload | undefined {
-    if (downloads.lastCompletedDownload?.taskId === taskId) {
-      return { status: 'done', file, modelType: type }
+  function progressRow(taskId: string) {
+    return downloads.downloadList.find((d) => d.taskId === taskId)
+  }
+
+  function taskOutcome(followed: FollowedTask): ModelFileUpload | undefined {
+    const { status, file, id: taskId } = followed
+    if (status === 'completed') {
+      return { status: 'done', file, modelType: followed.modelType }
     }
-    const download = downloads.downloadList.find((d) => d.taskId === taskId)
-    if (!download) return undefined
-    if (download.status === 'completed') {
-      return { status: 'done', file, modelType: type }
-    }
-    if (download.status === 'failed') {
+    if (status === 'failed') {
       return {
         status: 'failed',
         file,
         taskId,
-        error: download.error || t('assetBrowser.fileUpload.failed')
+        error: followed.error || t('assetBrowser.fileUpload.failed')
       }
     }
-    if (isDownloadCancelled(download.status)) {
+    if (status && isDownloadCancelled(status)) {
       return {
         status: 'failed',
         file,
@@ -135,73 +133,69 @@ export function useUploadModelFile() {
     return undefined
   }
 
+  function heldBack(followed: FollowedTask, error: string): ModelFileUpload {
+    const outcome = taskOutcome(followed)
+    if (outcome?.status === 'done') return outcome
+    return { status: 'failed', file: followed.file, taskId: followed.id, error }
+  }
+
+  function watchTask(followed: FollowedTask) {
+    return watch(
+      () => {
+        if (downloads.lastCompletedDownload?.taskId === followed.id) {
+          return { status: 'completed' as const, error: undefined }
+        }
+        const row = progressRow(followed.id)
+        return { status: row?.status, error: row?.error }
+      },
+      ({ status, error }) => {
+        if (!status || followed.status === 'completed') return
+        if (status === followed.status && error === followed.error) return
+        followed.status = status
+        followed.error = error
+        const outcome = taskOutcome(followed)
+        if (task === followed && !followed.settling && outcome) {
+          state.value = outcome
+        }
+      },
+      { immediate: true, flush: 'sync' }
+    )
+  }
+
   function followTask(taskId: string, file: File, type: string) {
     downloads.trackDownload(taskId, type, file.name, { source: 'upload' })
     state.value = { status: 'saving', file }
     const followed: FollowedTask = {
       id: taskId,
-      outcome: () => taskOutcome(taskId, file, type),
+      file,
+      modelType: type,
       settling: false
     }
     task = followed
-    stopTaskWatch = watch(
-      followed.outcome,
-      (outcome) => {
-        if (task === followed && !followed.settling && outcome) {
-          state.value = outcome
-        }
-      },
-      { immediate: true }
-    )
+    stopTaskWatch = watchTask(followed)
   }
 
-  function taskStatus(taskId: string) {
-    return downloads.downloadList.find((d) => d.taskId === taskId)?.status
-  }
-
-  function cancellationSettled(taskId: string): Promise<void> {
-    const pending = () => taskStatus(taskId) === 'cancellation_pending'
-    if (!pending()) return Promise.resolve()
+  function cancellationSettled(
+    taskId: string,
+    signal: AbortSignal
+  ): Promise<void> {
+    const pending = () => progressRow(taskId)?.status === 'cancellation_pending'
+    if (signal.aborted || !pending()) return Promise.resolve()
     return new Promise((resolve) => {
-      const unwatch = watch(pending, (stillPending) => {
-        if (!stillPending) endCancellationWait?.()
-      })
-      endCancellationWait = () => {
+      const settle = () => {
         unwatch()
-        endCancellationWait = undefined
+        signal.removeEventListener('abort', settle)
         resolve()
       }
+      const unwatch = watch(pending, (stillPending) => {
+        if (!stillPending) settle()
+      })
+      signal.addEventListener('abort', settle)
     })
   }
 
-  async function cancelTask(taskId: string, run: number): Promise<boolean> {
-    const cancelled = await downloads.cancelDownload(taskId)
-    if (!cancelled.ok) {
-      reportError(cancelled.error, {
-        surface: 'assets',
-        errorType: 'asset_download_cancellation_failure',
-        level: 'warning'
-      })
-      return false
-    }
-    if (run === generation) await cancellationSettled(taskId)
-    return true
-  }
-
-  function hasStopped(taskId: string) {
-    const status = taskStatus(taskId)
-    return status === 'cancelled' || status === 'failed'
-  }
-
-  function notSentAgain(followed: FollowedTask, file: File): ModelFileUpload {
-    const outcome = followed.outcome()
-    if (outcome?.status === 'done') return outcome
-    return {
-      status: 'failed',
-      file,
-      taskId: followed.id,
-      error: t('assetBrowser.fileUpload.notStopped')
-    }
+  function hasStopped(followed: FollowedTask) {
+    return followed.status === 'cancelled' || followed.status === 'failed'
   }
 
   function followedTaskOf(previous: ReadyToSend) {
@@ -210,21 +204,49 @@ export function useUploadModelFile() {
       : undefined
   }
 
+  async function requestStop(followed: FollowedTask, signal: AbortSignal) {
+    if (!progressRow(followed.id)) {
+      downloads.trackDownload(
+        followed.id,
+        followed.modelType,
+        followed.file.name,
+        { source: 'upload' }
+      )
+    }
+    const cancelled = await downloads.cancelDownload(followed.id)
+    if (!cancelled.ok) {
+      reportError(cancelled.error, {
+        surface: 'assets',
+        errorType: 'asset_download_cancellation_failure',
+        level: 'warning'
+      })
+      return false
+    }
+    await cancellationSettled(followed.id, signal)
+    return true
+  }
+
   async function settleFollowedTask(
     followed: FollowedTask,
     previous: ReadyToSend,
-    run: number
+    run: number,
+    signal: AbortSignal
   ): Promise<boolean> {
+    if (followed.status === 'cancelled') return true
     followed.settling = true
-    const cancelled = await cancelTask(followed.id, run)
+    const requested = await requestStop(followed, signal)
     followed.settling = false
     if (run !== generation) return false
-    if (!cancelled) {
-      state.value = followed.outcome() ?? previous
+    if (signal.aborted) {
+      state.value = heldBack(followed, t('assetBrowser.fileUpload.cancelled'))
       return false
     }
-    if (hasStopped(followed.id)) return true
-    state.value = notSentAgain(followed, previous.file)
+    if (!requested) {
+      state.value = taskOutcome(followed) ?? previous
+      return false
+    }
+    if (hasStopped(followed)) return true
+    state.value = heldBack(followed, t('assetBrowser.fileUpload.notStopped'))
     return false
   }
 
@@ -245,7 +267,10 @@ export function useUploadModelFile() {
     state.value = { status: 'uploading', file, sent: 0 }
 
     const followed = followedTaskOf(current)
-    if (followed && !(await settleFollowedTask(followed, current, run))) {
+    if (
+      followed &&
+      !(await settleFollowedTask(followed, current, run, signal))
+    ) {
       return null
     }
     stopFollowing()
@@ -283,7 +308,6 @@ export function useUploadModelFile() {
 
   function cancel() {
     controller?.abort()
-    endCancellationWait?.()
   }
 
   function reset() {
