@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/vue'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { nextTick } from 'vue'
 import { createI18n } from 'vue-i18n'
 
 import { useFeatureFlags } from '@/composables/useFeatureFlags'
@@ -136,6 +137,25 @@ describe('UploadModelDialog file upload', () => {
 
     await user.click(screen.getByRole('button', { name: 'Back' }))
     expect(screen.getByText('Choose a file')).toBeInTheDocument()
+  })
+
+  it('moves to the file, its type and Upload once a file is dropped', async () => {
+    uploadsOn()
+    renderDialog()
+    await nextTick()
+    const dropZone = screen.getByTestId('upload-model-file-input')
+    const dataTransfer = new DataTransfer()
+    dataTransfer.items.add(lora)
+
+    for (const type of ['dragenter', 'drop']) {
+      const event = new DragEvent(type, { bubbles: true, cancelable: true })
+      Object.defineProperty(event, 'dataTransfer', { value: dataTransfer })
+      dropZone.dispatchEvent(event)
+    }
+
+    expect(await screen.findByText(lora.name)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Upload' })).toBeEnabled()
+    expect(screen.queryByText('Choose a file')).not.toBeInTheDocument()
   })
 
   it('says why a file that is not .safetensors was not taken', async () => {
