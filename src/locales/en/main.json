@@ -4493,6 +4493,8 @@
       "drop": "Or drop a .safetensors file here",
       "failed": "Upload failed. Try again.",
       "notSafetensors": "Only .safetensors files can be uploaded.",
+      "planUnavailable": "Couldn't check your plan. Try again.",
+      "privateModelsDisabled": "Your plan doesn't include private models.",
       "progress": "{sent} of {total}",
       "saving": "Saving to your library...",
       "tryAgain": "Try again",
