@@ -324,7 +324,20 @@ export const useAssetDownloadStore = defineStore('assetDownload', () => {
     assetName: string,
     { source }: Pick<AssetDownload, 'source'> = {}
   ) {
-    if (downloads.value.has(taskId)) return
+    const existing = downloads.value.get(taskId)
+    if (existing) {
+      if (existing.modelType) return
+      existing.modelType = modelType
+      existing.source = source
+      if (existing.status === 'completed') {
+        lastCompletedDownload.value = {
+          taskId,
+          modelType,
+          timestamp: Date.now()
+        }
+      }
+      return
+    }
 
     dismissedPendingDownloads.delete(taskId)
     taskNotFoundAttempts.delete(taskId)
