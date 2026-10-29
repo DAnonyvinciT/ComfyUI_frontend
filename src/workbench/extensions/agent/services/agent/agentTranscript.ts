@@ -17,6 +17,7 @@ import type {
   ToolPart
 } from './agentMessageParts'
 import {
+  creditsFromChargeMicroUsd,
   createAssistantMessage,
   isOpenAskPart,
   toAskOrNoticePart
@@ -454,6 +455,15 @@ function applyAssistantRow(
   const isLive = row.status === 'streaming'
   message.streaming = isLive
   appendAssistantContent(message, row, text, isLive)
+
+  const chargeMicroUsd =
+    row.token_usage &&
+    typeof row.token_usage === 'object' &&
+    'charge_micro_usd' in row.token_usage
+      ? row.token_usage.charge_micro_usd
+      : undefined
+  const creditsUsed = creditsFromChargeMicroUsd(chargeMicroUsd)
+  if (creditsUsed !== undefined) message.creditsUsed = creditsUsed
 
   if (!isLive) return undefined
 
