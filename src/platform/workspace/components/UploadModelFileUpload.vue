@@ -52,6 +52,10 @@
         {{ $t('assetBrowser.fileUpload.saving') }}
       </p>
 
+      <p v-else-if="state.status === 'stopping'" class="m-0">
+        {{ $t('assetBrowser.fileUpload.stopping') }}
+      </p>
+
       <div v-else-if="state.status === 'done'" class="flex flex-col gap-2">
         <p class="m-0 font-bold text-foreground">
           {{ $t('assetBrowser.modelUploaded') }}
@@ -64,7 +68,7 @@
 
     <div class="flex w-full shrink-0 justify-end gap-2">
       <Button
-        v-if="state.status === 'uploading'"
+        v-if="state.status === 'uploading' || state.status === 'stopping'"
         variant="secondary"
         size="lg"
         data-attr="upload-model-file-cancel-button"

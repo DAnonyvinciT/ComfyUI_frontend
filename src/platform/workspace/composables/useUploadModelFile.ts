@@ -30,6 +30,7 @@ const FAILURE_COPY: Partial<Record<UploadStopped['reason'], string>> = {
 export type ModelFileUpload =
   | { status: 'idle'; error?: string }
   | { status: 'chosen'; file: File }
+  | { status: 'stopping'; file: File }
   | { status: 'uploading'; file: File; sent: number }
   | { status: 'saving'; file: File }
   | { status: 'done'; file: File; modelType: string }
@@ -43,7 +44,6 @@ interface FollowedTask {
   modelType: string
   status?: AssetDownloadStatus
   error?: string
-  settling: boolean
 }
 
 /**
@@ -152,7 +152,7 @@ export function useUploadModelFile() {
         followed.status = status
         followed.error = error
         const outcome = taskOutcome(followed)
-        if (task === followed && !followed.settling && outcome) {
+        if (task === followed && state.value.status !== 'stopping' && outcome) {
           state.value = outcome
         }
       },
@@ -163,12 +163,7 @@ export function useUploadModelFile() {
   function followTask(taskId: string, file: File, type: string) {
     downloads.trackDownload(taskId, type, file.name, { source: 'upload' })
     state.value = { status: 'saving', file }
-    const followed: FollowedTask = {
-      id: taskId,
-      file,
-      modelType: type,
-      settling: false
-    }
+    const followed: FollowedTask = { id: taskId, file, modelType: type }
     task = followed
     stopTaskWatch = watchTask(followed)
   }
@@ -230,9 +225,8 @@ export function useUploadModelFile() {
     signal: AbortSignal
   ): Promise<boolean> {
     if (followed.status === 'cancelled') return true
-    followed.settling = true
+    state.value = { status: 'stopping', file: followed.file }
     const requested = await requestStop(followed, signal)
-    followed.settling = false
     if (run !== generation) return false
     if (signal.aborted) {
       state.value = heldBack(followed, t('assetBrowser.fileUpload.cancelled'))
@@ -257,13 +251,13 @@ export function useUploadModelFile() {
     const { run, signal } = beginAttempt()
     const { file } = current
     const type = modelType.value
-    state.value = { status: 'uploading', file, sent: 0 }
 
     const followed = followedTaskOf(current)
     if (followed && !(await settleFollowedTask(followed, run, signal))) {
       return null
     }
     stopFollowing()
+    state.value = { status: 'uploading', file, sent: 0 }
 
     const result = await modelFileUploadApi.uploadModelFile(file, {
       tags: ['models', type],

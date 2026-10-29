@@ -312,6 +312,34 @@ describe('UploadModelDialog file upload', () => {
       )
     })
 
+    it('says it is stopping the earlier upload while that task cancels, with Cancel, and shows the upload once it stopped', async () => {
+      vi.spyOn(taskService, 'cancelTask').mockResolvedValue({
+        ok: true,
+        value: 'cancelling'
+      })
+      const { sends, user } = await savedToLibrary()
+      taskUpdate('failed', 'Storage was busy.')
+
+      await user.click(await screen.findByRole('button', { name: 'Try again' }))
+
+      expect(
+        await screen.findByText(enMessages.assetBrowser.fileUpload.stopping)
+      ).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Cancel' })).toBeInTheDocument()
+      expect(
+        screen.queryByText(`Uploading ${lora.name}`)
+      ).not.toBeInTheDocument()
+
+      taskUpdate('cancelled')
+      await vi.waitFor(() => expect(sends).toHaveLength(2))
+      expect(
+        await screen.findByText(`Uploading ${lora.name}`)
+      ).toBeInTheDocument()
+      expect(
+        screen.queryByText(enMessages.assetBrowser.fileUpload.stopping)
+      ).not.toBeInTheDocument()
+    })
+
     it('sends nothing while a cancel from the progress list is pending, and finishes when the first task completes', async () => {
       vi.spyOn(taskService, 'cancelTask').mockResolvedValue({
         ok: true,

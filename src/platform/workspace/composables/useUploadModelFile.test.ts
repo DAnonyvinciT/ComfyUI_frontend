@@ -586,12 +586,17 @@ describe('useUploadModelFile', () => {
       expect(downloads.downloadList[0]?.status).toBe('cancellation_pending')
     )
     expect(modelFileUploadApi.uploadModelFile).toHaveBeenCalledOnce()
-    expect(upload.state.value.status).toBe('uploading')
+    expect(upload.state.value).toEqual({ status: 'stopping', file: lora })
 
     taskUpdate('cancelled')
     await vi.waitFor(() =>
       expect(modelFileUploadApi.uploadModelFile).toHaveBeenCalledTimes(2)
     )
+    expect(upload.state.value).toEqual({
+      status: 'uploading',
+      file: lora,
+      sent: 0
+    })
     server.finish({ ok: false, reason: 'cancelled' })
     await expect(retried).resolves.toBeNull()
   })
