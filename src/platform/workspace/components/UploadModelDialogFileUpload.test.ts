@@ -293,7 +293,7 @@ describe('UploadModelDialog file upload', () => {
       ).toBeInTheDocument()
     })
 
-    it('cancels a failed library task before trying again', async () => {
+    it('cancels a failed library task, and sends again once the cancel is confirmed', async () => {
       const cancelTask = vi
         .spyOn(taskService, 'cancelTask')
         .mockResolvedValue({ ok: true, value: 'cancelling' })
@@ -301,12 +301,88 @@ describe('UploadModelDialog file upload', () => {
       taskUpdate('failed', 'Storage was busy.')
 
       await user.click(await screen.findByRole('button', { name: 'Try again' }))
+      await vi.waitFor(() => expect(cancelTask).toHaveBeenCalledOnce())
+      expect(sends).toHaveLength(1)
 
+      taskUpdate('cancelled')
       await vi.waitFor(() => expect(sends).toHaveLength(2))
       expect(cancelTask).toHaveBeenCalledWith(TASK_ID)
       expect(cancelTask.mock.invocationCallOrder[0]).toBeLessThan(
         spy.mock.invocationCallOrder[1]
       )
+    })
+
+    it('sends nothing while a cancel from the progress list is pending, and finishes when the first task completes', async () => {
+      vi.spyOn(taskService, 'cancelTask').mockResolvedValue({
+        ok: true,
+        value: 'cancelling'
+      })
+      const { sends, user } = await savedToLibrary()
+      await useAssetDownloadStore().cancelDownload(TASK_ID)
+
+      await user.click(await screen.findByRole('button', { name: 'Try again' }))
+      taskUpdate('completed')
+
+      expect(
+        await screen.findByText(enMessages.assetBrowser.modelUploaded)
+      ).toBeInTheDocument()
+      expect(sends).toHaveLength(1)
+    })
+
+    it('keeps following the failed task when its cancel request fails, and finishes if it completes', async () => {
+      vi.spyOn(taskService, 'cancelTask').mockResolvedValue({
+        ok: false,
+        error: new Error('Server returned 500')
+      })
+      const { sends, user } = await savedToLibrary()
+      taskUpdate('failed', 'Storage was busy.')
+
+      await user.click(await screen.findByRole('button', { name: 'Try again' }))
+      expect(await screen.findByText('Storage was busy.')).toBeInTheDocument()
+      taskUpdate('completed')
+
+      expect(
+        await screen.findByText(enMessages.assetBrowser.modelUploaded)
+      ).toBeInTheDocument()
+      expect(sends).toHaveLength(1)
+    })
+
+    it('names the folder the model went to when the failed task finished after another type was picked', async () => {
+      vi.spyOn(taskService, 'cancelTask').mockResolvedValue({
+        ok: true,
+        value: 'not-cancellable'
+      })
+      vi.spyOn(taskService, 'getTask').mockResolvedValue({
+        ok: true,
+        value: {
+          id: TASK_ID,
+          idempotency_key: 'key-1',
+          task_name: 'task:upload_model',
+          payload: {},
+          status: 'completed',
+          create_time: '2026-10-29T00:00:00Z',
+          update_time: '2026-10-29T00:00:00Z'
+        }
+      })
+      const { sends, user } = await savedToLibrary()
+      taskUpdate('failed', 'Storage was busy.')
+      await user.click(
+        await screen.findByRole('combobox', {
+          name: enMessages.assetBrowser.modelTypeSelectorLabel
+        })
+      )
+      await user.click(
+        await screen.findByRole('option', { name: 'Checkpoints' })
+      )
+
+      await user.click(screen.getByRole('button', { name: 'Try again' }))
+
+      expect(
+        await screen.findByText(
+          'Find it in the LoRA section of the models library.'
+        )
+      ).toBeInTheDocument()
+      expect(sends).toHaveLength(1)
     })
 
     it('shows the model imported, without a second upload, when the failed task finished after all', async () => {

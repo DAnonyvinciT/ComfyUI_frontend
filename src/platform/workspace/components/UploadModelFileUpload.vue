@@ -193,9 +193,10 @@ const typeOptions = computed(() =>
   }))
 )
 
-const modelTypeLabel = computed(
-  () =>
-    typeOptions.value.find((option) => option.value === modelType.value)
-      ?.name ?? modelType.value
-)
+const modelTypeLabel = computed(() => {
+  const folder = state.status === 'done' ? state.modelType : modelType.value
+  return (
+    typeOptions.value.find((option) => option.value === folder)?.name ?? folder
+  )
+})
 </script>

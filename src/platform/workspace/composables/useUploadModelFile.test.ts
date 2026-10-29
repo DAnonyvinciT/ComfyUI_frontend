@@ -489,6 +489,50 @@ describe('useUploadModelFile', () => {
     )
   })
 
+  it('sends nothing while the failed task is still running after its cancel is refused, and finishes when it completes', async () => {
+    vi.spyOn(taskService, 'cancelTask').mockResolvedValue({
+      ok: true,
+      value: 'not-cancellable'
+    })
+    vi.spyOn(taskService, 'getTask').mockResolvedValue({
+      ok: true,
+      value: {
+        id: TASK_ID,
+        idempotency_key: 'upload-1',
+        task_name: 'task:upload_model',
+        payload: {},
+        status: 'running',
+        create_time: new Date().toISOString(),
+        update_time: new Date().toISOString()
+      }
+    })
+    const { upload } = setup()
+    const server = pendingUpload()
+    upload.choose(lora)
+    const first = upload.upload()
+    server.finish({ ok: true, taskId: TASK_ID })
+    await first
+    taskUpdate('failed', 'Storage was busy.')
+    await nextTick()
+
+    await expect(upload.upload()).resolves.toBeNull()
+
+    expect(modelFileUploadApi.uploadModelFile).toHaveBeenCalledOnce()
+    expect(upload.state.value).toEqual({
+      status: 'failed',
+      file: lora,
+      taskId: TASK_ID,
+      error: enMessages.assetBrowser.fileUpload.notStopped
+    })
+    taskUpdate('completed')
+    await nextTick()
+    expect(upload.state.value).toEqual({
+      status: 'done',
+      file: lora,
+      modelType: 'loras'
+    })
+  })
+
   it('ignores an upload that answers after the person went back', async () => {
     const { upload } = setup()
     const server = pendingUpload()

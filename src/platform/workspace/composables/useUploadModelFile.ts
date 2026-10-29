@@ -35,6 +35,14 @@ export type ModelFileUpload =
   | { status: 'done'; file: File; modelType: string }
   | { status: 'failed'; file: File; error: string; taskId?: string }
 
+type ReadyToSend = Extract<ModelFileUpload, { status: 'chosen' | 'failed' }>
+
+interface FollowedTask {
+  id: string
+  outcome: () => ModelFileUpload | undefined
+  settling: boolean
+}
+
 /**
  * One model file chosen from the computer and uploaded into the workspace
  * library: choose it, pick its type, upload with progress or cancel.
@@ -57,14 +65,22 @@ export function useUploadModelFile() {
   const state = shallowRef<ModelFileUpload>({ status: 'idle' })
   const modelType = ref(defaultModelType())
   let controller: AbortController | undefined
+  let task: FollowedTask | undefined
   let stopTaskWatch: WatchStopHandle | undefined
+  let endCancellationWait: (() => void) | undefined
   let generation = 0
+
+  function stopFollowing() {
+    stopTaskWatch?.()
+    stopTaskWatch = undefined
+    task = undefined
+  }
 
   function stop() {
     generation++
     controller?.abort()
-    stopTaskWatch?.()
-    stopTaskWatch = undefined
+    stopFollowing()
+    endCancellationWait?.()
   }
 
   onScopeDispose(stop)
@@ -120,66 +136,123 @@ export function useUploadModelFile() {
   }
 
   function followTask(taskId: string, file: File, type: string) {
-    const run = generation
     downloads.trackDownload(taskId, type, file.name, { source: 'upload' })
     state.value = { status: 'saving', file }
+    const followed: FollowedTask = {
+      id: taskId,
+      outcome: () => taskOutcome(taskId, file, type),
+      settling: false
+    }
+    task = followed
     stopTaskWatch = watch(
-      () => taskOutcome(taskId, file, type),
+      followed.outcome,
       (outcome) => {
-        if (run === generation && outcome) state.value = outcome
+        if (task === followed && !followed.settling && outcome) {
+          state.value = outcome
+        }
       },
       { immediate: true }
     )
   }
 
-  async function settleFailedTask(
-    failed: Extract<ModelFileUpload, { status: 'failed' }>,
-    taskId: string,
-    type: string
-  ): Promise<boolean> {
-    const run = generation
-    const cancelled = await downloads.cancelDownload(taskId)
-    if (run !== generation) return false
-    const task = downloads.downloadList.find((d) => d.taskId === taskId)
-    if (task?.status === 'completed') {
-      state.value = {
-        status: 'done',
-        file: failed.file,
-        modelType: task.modelType ?? type
+  function taskStatus(taskId: string) {
+    return downloads.downloadList.find((d) => d.taskId === taskId)?.status
+  }
+
+  function cancellationSettled(taskId: string): Promise<void> {
+    const pending = () => taskStatus(taskId) === 'cancellation_pending'
+    if (!pending()) return Promise.resolve()
+    return new Promise((resolve) => {
+      const unwatch = watch(pending, (stillPending) => {
+        if (!stillPending) endCancellationWait?.()
+      })
+      endCancellationWait = () => {
+        unwatch()
+        endCancellationWait = undefined
+        resolve()
       }
+    })
+  }
+
+  async function cancelTask(taskId: string, run: number): Promise<boolean> {
+    const cancelled = await downloads.cancelDownload(taskId)
+    if (!cancelled.ok) {
+      reportError(cancelled.error, {
+        surface: 'assets',
+        errorType: 'asset_download_cancellation_failure',
+        level: 'warning'
+      })
       return false
     }
-    if (cancelled.ok) return true
-    reportError(cancelled.error, {
-      surface: 'assets',
-      errorType: 'asset_download_cancellation_failure',
-      level: 'warning'
-    })
-    state.value = failed
+    if (run === generation) await cancellationSettled(taskId)
+    return true
+  }
+
+  function hasStopped(taskId: string) {
+    const status = taskStatus(taskId)
+    return status === 'cancelled' || status === 'failed'
+  }
+
+  function notSentAgain(followed: FollowedTask, file: File): ModelFileUpload {
+    const outcome = followed.outcome()
+    if (outcome?.status === 'done') return outcome
+    return {
+      status: 'failed',
+      file,
+      taskId: followed.id,
+      error: t('assetBrowser.fileUpload.notStopped')
+    }
+  }
+
+  function followedTaskOf(previous: ReadyToSend) {
+    return previous.status === 'failed' && previous.taskId === task?.id
+      ? task
+      : undefined
+  }
+
+  async function settleFollowedTask(
+    followed: FollowedTask,
+    previous: ReadyToSend,
+    run: number
+  ): Promise<boolean> {
+    followed.settling = true
+    const cancelled = await cancelTask(followed.id, run)
+    followed.settling = false
+    if (run !== generation) return false
+    if (!cancelled) {
+      state.value = followed.outcome() ?? previous
+      return false
+    }
+    if (hasStopped(followed.id)) return true
+    state.value = notSentAgain(followed, previous.file)
     return false
+  }
+
+  function beginAttempt() {
+    generation++
+    controller?.abort()
+    controller = new AbortController()
+    return { run: generation, signal: controller.signal }
   }
 
   async function upload(): Promise<UploadModelSuccess | null> {
     const current = state.value
     if (current.status !== 'chosen' && current.status !== 'failed') return null
 
-    stop()
-    const run = generation
+    const { run, signal } = beginAttempt()
     const { file } = current
     const type = modelType.value
-    controller = new AbortController()
     state.value = { status: 'uploading', file, sent: 0 }
 
-    if (
-      current.status === 'failed' &&
-      current.taskId &&
-      !(await settleFailedTask(current, current.taskId, type))
-    )
+    const followed = followedTaskOf(current)
+    if (followed && !(await settleFollowedTask(followed, current, run))) {
       return null
+    }
+    stopFollowing()
 
     const result = await modelFileUploadApi.uploadModelFile(file, {
       tags: ['models', type],
-      signal: controller.signal,
+      signal,
       onProgress: (sent) => {
         if (run === generation)
           state.value = { status: 'uploading', file, sent }
@@ -210,6 +283,7 @@ export function useUploadModelFile() {
 
   function cancel() {
     controller?.abort()
+    endCancellationWait?.()
   }
 
   function reset() {
