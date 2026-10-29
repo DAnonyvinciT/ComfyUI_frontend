@@ -465,7 +465,7 @@ describe('useUploadModelFile', () => {
     expect(upload.state.value).toEqual({ status: 'saving', file: lora })
   })
 
-  it('keeps the failure and sends nothing when the failed library task cannot be canceled', async () => {
+  it('says the earlier upload could not be confirmed stopped, and sends nothing, when its cancel request fails', async () => {
     const refused = new Error('Server returned 500')
     vi.spyOn(taskService, 'cancelTask').mockResolvedValue({
       ok: false,
@@ -479,11 +479,15 @@ describe('useUploadModelFile', () => {
     await first
     taskUpdate('failed', 'Storage was busy.')
     await nextTick()
-    const failed = upload.state.value
 
     await expect(upload.upload()).resolves.toBeNull()
 
-    expect(upload.state.value).toEqual(failed)
+    expect(upload.state.value).toEqual({
+      status: 'failed',
+      file: lora,
+      taskId: TASK_ID,
+      error: enMessages.assetBrowser.fileUpload.notStopped
+    })
     expect(modelFileUploadApi.uploadModelFile).toHaveBeenCalledOnce()
     expect(reportError).toHaveBeenCalledWith(
       refused,
@@ -549,7 +553,7 @@ describe('useUploadModelFile', () => {
     await nextTick()
 
     useAssetDownloadStore().clearDismissibleDownloads()
-    void upload.upload()
+    const retried = upload.upload()
 
     await vi.waitFor(() =>
       expect(modelFileUploadApi.uploadModelFile).toHaveBeenCalledTimes(2)
@@ -560,6 +564,8 @@ describe('useUploadModelFile', () => {
       file: lora,
       sent: 0
     })
+    server.finish({ ok: false, reason: 'cancelled' })
+    await expect(retried).resolves.toBeNull()
   })
 
   it('cancels a failed task that was dismissed from the progress list, and sends again once the cancel is confirmed', async () => {
@@ -577,7 +583,7 @@ describe('useUploadModelFile', () => {
     const downloads = useAssetDownloadStore()
 
     downloads.clearDismissibleDownloads()
-    void upload.upload()
+    const retried = upload.upload()
 
     await vi.waitFor(() => expect(cancelTask).toHaveBeenCalledWith(TASK_ID))
     await vi.waitFor(() =>
@@ -590,6 +596,8 @@ describe('useUploadModelFile', () => {
     await vi.waitFor(() =>
       expect(modelFileUploadApi.uploadModelFile).toHaveBeenCalledTimes(2)
     )
+    server.finish({ ok: false, reason: 'cancelled' })
+    await expect(retried).resolves.toBeNull()
   })
 
   it('stops Try again when Cancel is pressed while the earlier task is being canceled, and still finishes if that task completes', async () => {

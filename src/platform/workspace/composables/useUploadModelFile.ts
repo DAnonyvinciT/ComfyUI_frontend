@@ -228,7 +228,6 @@ export function useUploadModelFile() {
 
   async function settleFollowedTask(
     followed: FollowedTask,
-    previous: ReadyToSend,
     run: number,
     signal: AbortSignal
   ): Promise<boolean> {
@@ -241,11 +240,7 @@ export function useUploadModelFile() {
       state.value = heldBack(followed, t('assetBrowser.fileUpload.cancelled'))
       return false
     }
-    if (!requested) {
-      state.value = taskOutcome(followed) ?? previous
-      return false
-    }
-    if (hasStopped(followed)) return true
+    if (requested && hasStopped(followed)) return true
     state.value = heldBack(followed, t('assetBrowser.fileUpload.notStopped'))
     return false
   }
@@ -267,10 +262,7 @@ export function useUploadModelFile() {
     state.value = { status: 'uploading', file, sent: 0 }
 
     const followed = followedTaskOf(current)
-    if (
-      followed &&
-      !(await settleFollowedTask(followed, current, run, signal))
-    ) {
+    if (followed && !(await settleFollowedTask(followed, run, signal))) {
       return null
     }
     stopFollowing()

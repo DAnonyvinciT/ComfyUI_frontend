@@ -329,7 +329,7 @@ describe('UploadModelDialog file upload', () => {
       expect(sends).toHaveLength(1)
     })
 
-    it('keeps following the failed task when its cancel request fails, and finishes if it completes', async () => {
+    it('says the earlier upload could not be confirmed stopped when its cancel request fails, and finishes if it completes', async () => {
       vi.spyOn(taskService, 'cancelTask').mockResolvedValue({
         ok: false,
         error: new Error('Server returned 500')
@@ -338,7 +338,10 @@ describe('UploadModelDialog file upload', () => {
       taskUpdate('failed', 'Storage was busy.')
 
       await user.click(await screen.findByRole('button', { name: 'Try again' }))
-      expect(await screen.findByText('Storage was busy.')).toBeInTheDocument()
+      expect(
+        await screen.findByText(enMessages.assetBrowser.fileUpload.notStopped)
+      ).toBeInTheDocument()
+      expect(screen.queryByText('Storage was busy.')).not.toBeInTheDocument()
       taskUpdate('completed')
 
       expect(
