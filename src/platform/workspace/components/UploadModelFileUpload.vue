@@ -48,12 +48,8 @@
         />
       </div>
 
-      <p v-else-if="state.status === 'saving'" class="m-0">
-        {{ $t('assetBrowser.fileUpload.saving') }}
-      </p>
-
-      <p v-else-if="state.status === 'stopping'" class="m-0">
-        {{ $t('assetBrowser.fileUpload.stopping') }}
+      <p v-else-if="statusLine" class="m-0">
+        {{ statusLine }}
       </p>
 
       <div v-else-if="state.status === 'done'" class="flex flex-col gap-2">
@@ -68,7 +64,7 @@
 
     <div class="flex w-full shrink-0 justify-end gap-2">
       <Button
-        v-if="state.status === 'uploading' || state.status === 'stopping'"
+        v-if="canCancel"
         variant="secondary"
         size="lg"
         data-attr="upload-model-file-cancel-button"
@@ -162,6 +158,16 @@ const percent = computed(() =>
     ? Math.round((state.sent / state.file.size) * 100)
     : 0
 )
+
+const canCancel = computed(
+  () => state.status === 'uploading' || state.status === 'stopping'
+)
+
+const statusLine = computed(() => {
+  if (state.status === 'saving') return t('assetBrowser.fileUpload.saving')
+  if (state.status === 'stopping') return t('assetBrowser.fileUpload.stopping')
+  return undefined
+})
 
 const progressAttrs = computed(() =>
   state.status === 'uploading'
