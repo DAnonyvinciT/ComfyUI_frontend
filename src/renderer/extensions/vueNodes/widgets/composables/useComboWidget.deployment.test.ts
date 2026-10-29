@@ -6,6 +6,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useFeatureFlags } from '@/composables/useFeatureFlags'
 import { getComboWidgetInventory } from '@/core/graph/widgets/comboWidgetInventory'
 import { LGraphNode } from '@/lib/litegraph/src/litegraph'
+import {
+  createTestSubgraph,
+  createTestSubgraphNode
+} from '@/lib/litegraph/src/subgraph/__fixtures__/subgraphHelpers'
 import { assetService } from '@/platform/assets/services/assetService'
 import { reportError } from '@comfyorg/telemetry/reportError'
 import { useDeploymentLibraryModelsStore } from '@/platform/workspace/stores/deploymentLibraryModelsStore'
@@ -15,6 +19,7 @@ import { useAssetDownloadStore } from '@/stores/assetDownloadStore'
 import { useNodeDefStore } from '@/stores/nodeDefStore'
 
 import { ComfyWidgets } from '@/scripts/widgets'
+import { api } from '@/scripts/api'
 import { app } from '@/scripts/app'
 
 vi.mock(import('@/scripts/api'))
@@ -272,6 +277,115 @@ describe('model widgets on a deployment', () => {
       await settle()
 
       expect(widget.options.values).toContain('uploaded.safetensors')
+    })
+
+    it('lets the newest read of the library win when an older one answers last', async () => {
+      let answerOlder: (names: string[]) => void = () => {}
+      vi.mocked(assetService.getWorkspaceLibraryModels).mockReturnValueOnce(
+        new Promise((resolve) => {
+          answerOlder = resolve
+        })
+      )
+      const widget = loraWidget()
+      library.set('loras', models('uploaded.safetensors'))
+      useDeploymentLibraryModelsStore().refresh('loras')
+      await settle()
+
+      answerOlder(models('before_upload.safetensors'))
+      await settle()
+
+      expect(widget.options.values).toEqual([
+        'release.safetensors',
+        'uploaded.safetensors'
+      ])
+    })
+
+    it('drops a deleted model from the dropdown once the deletion succeeds', async () => {
+      library.set(
+        'loras',
+        models('my_style_v2.safetensors', 'teammate_portrait.safetensors')
+      )
+      const widget = loraWidget()
+      await settle()
+      expect(widget.options.values).toContain('my_style_v2.safetensors')
+
+      vi.mocked(api.fetchApi).mockResolvedValueOnce(
+        new Response(null, { status: 204 })
+      )
+      library.set('loras', models('teammate_portrait.safetensors'))
+      await assetService.deleteAsset('3f0b6c1e-0000-4000-8000-000000000001')
+      await settle()
+
+      expect(widget.options.values).toEqual([
+        'release.safetensors',
+        'teammate_portrait.safetensors'
+      ])
+    })
+
+    it('settles a missing-model wait on the new workspace without waiting for the old one', async () => {
+      vi.mocked(assetService.getWorkspaceLibraryModels).mockReturnValueOnce(
+        new Promise(() => {})
+      )
+      const widget = loraWidget()
+      const inventory = getComboWidgetInventory(widget)
+      let settled = false
+      void inventory?.waitForSettled().then(() => {
+        settled = true
+      })
+
+      library.set('loras', models('new_workspace.safetensors'))
+      onWorkspace('ws-2')
+      expect(widget.options.values).toEqual(['release.safetensors'])
+      await settle()
+
+      expect(inventory?.getStatus()).toBe('ready')
+      expect(widget.options.values).toEqual([
+        'release.safetensors',
+        'new_workspace.safetensors'
+      ])
+      expect(settled).toBe(true)
+    })
+
+    it('keeps a loader promoted out of a subgraph in step with the library', async () => {
+      let answer: (names: string[]) => void = () => {}
+      vi.mocked(assetService.getWorkspaceLibraryModels).mockReturnValueOnce(
+        new Promise((resolve) => {
+          answer = resolve
+        })
+      )
+      const subgraph = createTestSubgraph({
+        inputs: [{ name: 'outer_lora', type: 'COMBO' }]
+      })
+      const node = new LGraphNode('LoraLoader')
+      node.comfyClass = 'LoraLoader'
+      const input = node.addInput('lora_name', 'COMBO')
+      const { widget } = ComfyWidgets.COMBO(
+        node,
+        'lora_name',
+        [['release.safetensors'], {}],
+        app
+      )
+      input.widget = { name: widget.name }
+      subgraph.add(node)
+      subgraph.inputNode.slots[0].connect(input, node)
+      const host = createTestSubgraphNode(subgraph, {
+        parentGraph: subgraph.rootGraph,
+        id: 65
+      })
+      subgraph.rootGraph.add(host)
+      const promoted = host.widgets[0]
+      expect(promoted.options.values).toEqual(['release.safetensors'])
+
+      answer(models('my_style_v2.safetensors'))
+      await settle()
+      expect(promoted.options.values).toEqual([
+        'release.safetensors',
+        'my_style_v2.safetensors'
+      ])
+
+      vi.mocked(useFeatureFlags().flags).runtimeLibraryModelsEnabled = false
+      await settle()
+      expect(promoted.options.values).toEqual(['release.safetensors'])
     })
 
     it('keeps the Release models and reports when the library cannot be read', async () => {

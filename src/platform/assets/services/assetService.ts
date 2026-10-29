@@ -240,6 +240,15 @@ function compareLoaderPaths(a: string, b: string): number {
 /**
  * Validates asset response data using Zod schema
  */
+function isDeploymentDownloadableName(name: string): boolean {
+  return (
+    !name.startsWith('.') &&
+    !/[/\\\0]/.test(name) &&
+    !name.includes('..') &&
+    name.toLowerCase().endsWith('.safetensors')
+  )
+}
+
 function validateAssetResponse(data: unknown): AssetResponse {
   const result = assetResponseSchema.safeParse(data)
   if (result.success) return result.data
@@ -270,6 +279,8 @@ function validateUploadedAssetResponse(
  * Not exposed globally - used internally by ComfyApi
  */
 function createAssetService() {
+  const deletionListeners = new Set<() => void>()
+
   /**
    * Model assets bucketed by folder category, built from a single walk of the
    * `models` tag rather than a fetch per category. Shared by the folder list
@@ -770,7 +781,8 @@ function createAssetService() {
 
   /**
    * Lists the loader names of every private model in one folder of the
-   * workspace's library, including the ones teammates added.
+   * workspace's library, including the ones teammates added, that a
+   * deployment can download: bare `.safetensors` file names.
    */
   async function getWorkspaceLibraryModels(folder: string): Promise<string[]> {
     const assets = await walkAssetPages(
@@ -790,7 +802,11 @@ function createAssetService() {
     )
     return assets
       .map((asset) => asset.loader_path ?? getAssetFilename(asset))
-      .filter((name) => assetFilenameSchema.safeParse(name).success)
+      .filter(
+        (name) =>
+          assetFilenameSchema.safeParse(name).success &&
+          isDeploymentDownloadableName(name)
+      )
   }
 
   /**
@@ -810,6 +826,17 @@ function createAssetService() {
       throw new Error(
         `Unable to delete asset ${id}: Server returned ${res.status}`
       )
+    }
+    for (const listener of deletionListeners) listener()
+  }
+
+  /**
+   * Calls back after each asset this client deletes; returns the unsubscribe.
+   */
+  function onAssetDeleted(callback: () => void): () => void {
+    deletionListeners.add(callback)
+    return () => {
+      deletionListeners.delete(callback)
     }
   }
 
@@ -1144,6 +1171,7 @@ function createAssetService() {
     getAllAssetsByTag,
     getWorkspaceLibraryModels,
     deleteAsset,
+    onAssetDeleted,
     updateAsset,
     addAssetTags,
     removeAssetTags,
