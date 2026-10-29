@@ -12,7 +12,8 @@ import { useAssetDownloadStore } from '@/stores/assetDownloadStore'
 const MODEL_FILE_EXTENSION = '.safetensors'
 const DEFAULT_MODEL_TYPE = 'loras'
 
-type ModelFileUpload =
+/** Where one model file upload stands. */
+export type ModelFileUpload =
   | { status: 'idle'; error?: string }
   | { status: 'chosen'; file: File }
   | { status: 'uploading'; file: File; sent: number }
@@ -81,7 +82,7 @@ export function useUploadModelFile() {
 
   function followTask(taskId: string, file: File, type: string) {
     const run = generation
-    downloads.trackDownload(taskId, type, file.name)
+    downloads.trackDownload(taskId, type, file.name, { source: 'upload' })
     state.value = { status: 'saving', file }
     stopTaskWatch = watch(
       () => downloads.downloadList.find((d) => d.taskId === taskId),

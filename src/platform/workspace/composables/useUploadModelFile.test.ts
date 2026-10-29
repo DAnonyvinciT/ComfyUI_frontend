@@ -140,6 +140,7 @@ describe('useUploadModelFile', () => {
       file: lora,
       modelType: 'loras'
     })
+    expect(useAssetDownloadStore().downloadList[0]?.source).toBe('upload')
     expect(useAssetDownloadStore().lastCompletedDownload).toMatchObject({
       taskId: TASK_ID,
       modelType: 'loras'
