@@ -15104,6 +15104,41 @@
       }
     }
   },
+  "MiniMaxH3ContextWindows": {
+    "description": "Legen Sie Kontextfenster für MiniMax H3 fest. Die Fenster beginnen an den 17-Frame-Blöcken des Modells, damit Video und Audio synchron bleiben.",
+    "display_name": "MiniMax H3 Kontextfenster",
+    "inputs": {
+      "context_length": {
+        "name": "context_length",
+        "tooltip": "Die Länge des Kontextfensters in tatsächlichen Frames. Muss 17*n + 5 sein."
+      },
+      "context_overlap": {
+        "name": "context_overlap",
+        "tooltip": "Die Überlappung des Kontextfensters in tatsächlichen Frames. Muss 17*n + 5 sein."
+      },
+      "freenoise": {
+        "name": "freenoise",
+        "tooltip": "Ob FreeNoise-Rausch-Shuffling angewendet werden soll; verbessert die Fensterüberblendung."
+      },
+      "fuse_method": {
+        "name": "fuse_method",
+        "tooltip": "Die Methode zum Zusammenführen der Kontextfenster."
+      },
+      "model": {
+        "name": "model",
+        "tooltip": "Das Modell, auf das während des Samplings Kontextfenster angewendet werden sollen."
+      },
+      "split_conds_to_windows": {
+        "name": "split_conds_to_windows",
+        "tooltip": "Ob mehrere Konditionierungen (erstellt durch ConditionCombine) anhand des Regionsindex auf die einzelnen Fenster aufgeteilt werden sollen."
+      }
+    },
+    "outputs": {
+      "0": {
+        "tooltip": "Das Modell mit den während des Samplings angewendeten Kontextfenstern."
+      }
+    }
+  },
   "MiniMaxH3FunControlNetApply": {
     "description": "Wendet ein MiniMax H3 Fun ControlNet als Modell-Patch auf ein Text-zu-Video-Modell an.",
     "display_name": "MiniMax H3 Fun ControlNet anwenden",

@@ -15104,6 +15104,41 @@
       }
     }
   },
+  "MiniMaxH3ContextWindows": {
+    "description": "پنجره‌های زمینه را برای MiniMax H3 تنظیم می‌کند. پنجره‌ها از بخش‌های ۱۷ فریمی مدل آغاز می‌شوند تا ویدئو و صدا همگام بمانند.",
+    "display_name": "پنجره‌های زمینهٔ MiniMax H3",
+    "inputs": {
+      "context_length": {
+        "name": "context_length",
+        "tooltip": "طول پنجرهٔ زمینه بر حسب فریم‌های واقعی. باید 17*n + 5 باشد."
+      },
+      "context_overlap": {
+        "name": "context_overlap",
+        "tooltip": "هم‌پوشانی پنجرهٔ زمینه بر حسب فریم‌های واقعی. باید 17*n + 5 باشد."
+      },
+      "freenoise": {
+        "name": "freenoise",
+        "tooltip": "این‌که درهم‌ریزی نویز FreeNoise اعمال شود یا نه؛ ترکیب پنجره‌ها را بهبود می‌دهد."
+      },
+      "fuse_method": {
+        "name": "fuse_method",
+        "tooltip": "روش مورد استفاده برای ادغام پنجره‌های زمینه."
+      },
+      "model": {
+        "name": "model",
+        "tooltip": "مدلی که پنجره‌های زمینه هنگام نمونه‌گیری روی آن اعمال می‌شوند."
+      },
+      "split_conds_to_windows": {
+        "name": "split_conds_to_windows",
+        "tooltip": "این‌که conditionings متعدد (ایجادشده توسط ConditionCombine) بر اساس شاخص ناحیه به هر پنجره تقسیم شوند یا نه."
+      }
+    },
+    "outputs": {
+      "0": {
+        "tooltip": "مدلی که پنجره‌های زمینه هنگام نمونه‌گیری روی آن اعمال شده‌اند."
+      }
+    }
+  },
   "MiniMaxH3FunControlNetApply": {
     "description": "یک MiniMax H3 Fun ControlNet را به‌عنوان patch مدل به یک مدل متن‌به‌ویدئو اعمال کنید.",
     "display_name": "اعمال MiniMax H3 Fun ControlNet",

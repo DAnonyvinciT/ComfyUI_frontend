@@ -15104,6 +15104,41 @@
       }
     }
   },
+  "MiniMaxH3ContextWindows": {
+    "description": "Настройка окон контекста для MiniMax H3. Окна начинаются с 17-кадровых блоков модели, чтобы видео и аудио оставались синхронизированными.",
+    "display_name": "Окна контекста MiniMax H3",
+    "inputs": {
+      "context_length": {
+        "name": "context_length",
+        "tooltip": "Длина окна контекста в фактических кадрах. Должна быть 17*n + 5."
+      },
+      "context_overlap": {
+        "name": "context_overlap",
+        "tooltip": "Перекрытие окна контекста в фактических кадрах. Должно быть 17*n + 5."
+      },
+      "freenoise": {
+        "name": "freenoise",
+        "tooltip": "Следует ли применять перемешивание шума FreeNoise, улучшающее смешивание окон."
+      },
+      "fuse_method": {
+        "name": "fuse_method",
+        "tooltip": "Метод, используемый для объединения окон контекста."
+      },
+      "model": {
+        "name": "model",
+        "tooltip": "Модель, к которой следует применить окна контекста во время сэмплирования."
+      },
+      "split_conds_to_windows": {
+        "name": "split_conds_to_windows",
+        "tooltip": "Следует ли разделять несколько кондиционирований (созданных ConditionCombine) для каждого окна на основе индекса области."
+      }
+    },
+    "outputs": {
+      "0": {
+        "tooltip": "Модель с применёнными окнами контекста во время сэмплирования."
+      }
+    }
+  },
   "MiniMaxH3FunControlNetApply": {
     "description": "Применяет MiniMax H3 Fun ControlNet к модели преобразования текста в видео в качестве патча модели.",
     "display_name": "Применить MiniMax H3 Fun ControlNet",

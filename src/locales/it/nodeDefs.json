@@ -15104,6 +15104,41 @@
       }
     }
   },
+  "MiniMaxH3ContextWindows": {
+    "description": "Imposta le finestre di contesto per MiniMax H3. Le finestre iniziano sui blocchi di 17 frame del modello per mantenere video e audio sincronizzati.",
+    "display_name": "Finestre di contesto MiniMax H3",
+    "inputs": {
+      "context_length": {
+        "name": "context_length",
+        "tooltip": "La lunghezza della finestra di contesto in frame reali. Deve essere 17*n + 5."
+      },
+      "context_overlap": {
+        "name": "context_overlap",
+        "tooltip": "La sovrapposizione della finestra di contesto in frame reali. Deve essere 17*n + 5."
+      },
+      "freenoise": {
+        "name": "freenoise",
+        "tooltip": "Se applicare il rimescolamento del rumore FreeNoise, che migliora la fusione delle finestre."
+      },
+      "fuse_method": {
+        "name": "fuse_method",
+        "tooltip": "Il metodo da usare per fondere le finestre di contesto."
+      },
+      "model": {
+        "name": "model",
+        "tooltip": "Il modello a cui applicare le finestre di contesto durante il campionamento."
+      },
+      "split_conds_to_windows": {
+        "name": "split_conds_to_windows",
+        "tooltip": "Se suddividere i condizionamenti multipli (creati da ConditionCombine) in ciascuna finestra in base all'indice della regione."
+      }
+    },
+    "outputs": {
+      "0": {
+        "tooltip": "Il modello con finestre di contesto applicate durante il campionamento."
+      }
+    }
+  },
   "MiniMaxH3FunControlNetApply": {
     "description": "Applica un MiniMax H3 Fun ControlNet a un modello da testo a video come patch del modello.",
     "display_name": "Applica MiniMax H3 Fun ControlNet",

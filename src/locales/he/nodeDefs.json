@@ -15104,6 +15104,41 @@
       }
     }
   },
+  "MiniMaxH3ContextWindows": {
+    "description": "הגדרת חלונות הקשר עבור MiniMax H3. החלונות מתחילים במקטעים בני 17 פריימים של המודל, כדי לשמור על סנכרון בין הווידאו לשמע.",
+    "display_name": "חלונות הקשר של MiniMax H3",
+    "inputs": {
+      "context_length": {
+        "name": "context_length",
+        "tooltip": "אורך חלון ההקשר בפריימים ממשיים. חייב להיות 17*n + 5."
+      },
+      "context_overlap": {
+        "name": "context_overlap",
+        "tooltip": "החפיפה של חלון ההקשר בפריימים ממשיים. חייבת להיות 17*n + 5."
+      },
+      "freenoise": {
+        "name": "freenoise",
+        "tooltip": "האם להחיל ערבוב רעש של FreeNoise, המשפר את המיזוג בין החלונות."
+      },
+      "fuse_method": {
+        "name": "fuse_method",
+        "tooltip": "השיטה שתשמש למיזוג חלונות ההקשר."
+      },
+      "model": {
+        "name": "model",
+        "tooltip": "המודל שעליו יוחלו חלונות הקשר במהלך הדגימה."
+      },
+      "split_conds_to_windows": {
+        "name": "split_conds_to_windows",
+        "tooltip": "האם לפצל התניות מרובות (שנוצרו על ידי ConditionCombine) לכל חלון בהתאם לאינדקס האזור."
+      }
+    },
+    "outputs": {
+      "0": {
+        "tooltip": "המודל שעליו הוחלו חלונות הקשר במהלך הדגימה."
+      }
+    }
+  },
   "MiniMaxH3FunControlNetApply": {
     "description": "החל MiniMax H3 Fun ControlNet על מודל מטקסט לווידאו כתיקון מודל.",
     "display_name": "החל MiniMax H3 Fun ControlNet",

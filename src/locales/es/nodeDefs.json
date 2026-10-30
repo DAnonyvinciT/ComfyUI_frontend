@@ -15104,6 +15104,41 @@
       }
     }
   },
+  "MiniMaxH3ContextWindows": {
+    "description": "Configura las ventanas de contexto para MiniMax H3. Las ventanas comienzan en los bloques de 17 fotogramas del modelo para mantener el vídeo y el audio sincronizados.",
+    "display_name": "Ventanas de contexto de MiniMax H3",
+    "inputs": {
+      "context_length": {
+        "name": "longitud_de_contexto",
+        "tooltip": "La longitud de la ventana de contexto en fotogramas reales. Debe ser 17*n + 5."
+      },
+      "context_overlap": {
+        "name": "solapamiento_de_contexto",
+        "tooltip": "El solapamiento de la ventana de contexto en fotogramas reales. Debe ser 17*n + 5."
+      },
+      "freenoise": {
+        "name": "ruido_libre",
+        "tooltip": "Indica si se aplica la mezcla de ruido de FreeNoise; mejora la combinación de las ventanas."
+      },
+      "fuse_method": {
+        "name": "método_de_fusión",
+        "tooltip": "El método que se utilizará para fusionar las ventanas de contexto."
+      },
+      "model": {
+        "name": "modelo",
+        "tooltip": "El modelo al que se aplicarán las ventanas de contexto durante el muestreo."
+      },
+      "split_conds_to_windows": {
+        "name": "dividir_condicionamientos_en_ventanas",
+        "tooltip": "Indica si se deben dividir los condicionamientos múltiples (creados por ConditionCombine) en cada ventana según el índice de región."
+      }
+    },
+    "outputs": {
+      "0": {
+        "tooltip": "El modelo con las ventanas de contexto aplicadas durante el muestreo."
+      }
+    }
+  },
   "MiniMaxH3FunControlNetApply": {
     "description": "Aplica un MiniMax H3 Fun ControlNet a un modelo de texto a vídeo como parche de modelo.",
     "display_name": "Aplicar MiniMax H3 Fun ControlNet",

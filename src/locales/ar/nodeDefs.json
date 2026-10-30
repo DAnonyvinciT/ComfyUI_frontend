@@ -15104,6 +15104,41 @@
       }
     }
   },
+  "MiniMaxH3ContextWindows": {
+    "description": "اضبط نوافذ السياق لـ MiniMax H3. تبدأ النوافذ عند مقاطع النموذج المكوّنة من 17 إطارًا للحفاظ على تزامن الفيديو والصوت.",
+    "display_name": "نوافذ السياق لـ MiniMax H3",
+    "inputs": {
+      "context_length": {
+        "name": "context_length",
+        "tooltip": "طول نافذة السياق بالإطارات الفعلية. يجب أن يكون 17*n + 5."
+      },
+      "context_overlap": {
+        "name": "context_overlap",
+        "tooltip": "تداخل نافذة السياق بالإطارات الفعلية. يجب أن يكون 17*n + 5."
+      },
+      "freenoise": {
+        "name": "freenoise",
+        "tooltip": "ما إذا كان سيتم تطبيق خلط ضوضاء FreeNoise، مما يحسّن مزج النوافذ."
+      },
+      "fuse_method": {
+        "name": "fuse_method",
+        "tooltip": "الطريقة المستخدمة لدمج نوافذ السياق."
+      },
+      "model": {
+        "name": "model",
+        "tooltip": "النموذج الذي ستُطبَّق عليه نوافذ السياق أثناء أخذ العينات."
+      },
+      "split_conds_to_windows": {
+        "name": "split_conds_to_windows",
+        "tooltip": "ما إذا كان سيتم تقسيم التكييفات المتعددة (التي أنشأها ConditionCombine) إلى كل نافذة استنادًا إلى فهرس المنطقة."
+      }
+    },
+    "outputs": {
+      "0": {
+        "tooltip": "النموذج مع تطبيق نوافذ السياق أثناء أخذ العينات."
+      }
+    }
+  },
   "MiniMaxH3FunControlNetApply": {
     "description": "تطبيق MiniMax H3 Fun ControlNet على نموذج تحويل النص إلى فيديو كرقعة للنموذج.",
     "display_name": "تطبيق MiniMax H3 Fun ControlNet",

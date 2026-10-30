@@ -15104,6 +15104,41 @@
       }
     }
   },
+  "MiniMaxH3ContextWindows": {
+    "description": "MiniMax H3의 컨텍스트 윈도우를 설정합니다. 비디오와 오디오의 동기화를 유지하기 위해 윈도우는 모델의 17프레임 청크에서 시작합니다.",
+    "display_name": "MiniMax H3 컨텍스트 윈도우",
+    "inputs": {
+      "context_length": {
+        "name": "context_length",
+        "tooltip": "실제 프레임 기준 컨텍스트 윈도우의 길이입니다. 17*n + 5여야 합니다."
+      },
+      "context_overlap": {
+        "name": "context_overlap",
+        "tooltip": "실제 프레임 기준 컨텍스트 윈도우의 겹침 길이입니다. 17*n + 5여야 합니다."
+      },
+      "freenoise": {
+        "name": "freenoise",
+        "tooltip": "FreeNoise 노이즈 셔플링을 적용할지 여부입니다. 윈도우 블렌딩을 개선합니다."
+      },
+      "fuse_method": {
+        "name": "fuse_method",
+        "tooltip": "컨텍스트 윈도우를 융합하는 데 사용할 방법입니다."
+      },
+      "model": {
+        "name": "model",
+        "tooltip": "샘플링 중 컨텍스트 윈도우를 적용할 모델입니다."
+      },
+      "split_conds_to_windows": {
+        "name": "split_conds_to_windows",
+        "tooltip": "ConditionCombine으로 생성된 여러 컨디셔닝을 영역 인덱스에 따라 각 윈도우로 분할할지 여부입니다."
+      }
+    },
+    "outputs": {
+      "0": {
+        "tooltip": "샘플링 중 컨텍스트 윈도우가 적용된 모델입니다."
+      }
+    }
+  },
   "MiniMaxH3FunControlNetApply": {
     "description": "MiniMax H3 Fun ControlNet을 모델 패치로 텍스트-투-비디오 모델에 적용합니다.",
     "display_name": "MiniMax H3 Fun ControlNet 적용",

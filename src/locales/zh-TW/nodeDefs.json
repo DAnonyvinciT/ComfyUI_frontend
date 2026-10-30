@@ -15104,6 +15104,41 @@
       }
     }
   },
+  "MiniMaxH3ContextWindows": {
+    "description": "設定 MiniMax H3 的上下文視窗。視窗從模型的 17 影格區塊開始，以保持影片與音訊同步。",
+    "display_name": "MiniMax H3 上下文視窗",
+    "inputs": {
+      "context_length": {
+        "name": "上下文長度",
+        "tooltip": "上下文視窗的實際影格長度。必須為 17*n + 5。"
+      },
+      "context_overlap": {
+        "name": "上下文重疊",
+        "tooltip": "上下文視窗以實際影格計算的重疊量。必須為 17*n + 5。"
+      },
+      "freenoise": {
+        "name": "自由雜訊",
+        "tooltip": "是否套用 FreeNoise 雜訊洗牌，可改善視窗融合。"
+      },
+      "fuse_method": {
+        "name": "融合方法",
+        "tooltip": "用於融合上下文視窗的方法。"
+      },
+      "model": {
+        "name": "模型",
+        "tooltip": "取樣時要套用上下文視窗的模型。"
+      },
+      "split_conds_to_windows": {
+        "name": "將條件分割至視窗",
+        "tooltip": "是否依據區域索引，將多個條件設定（由 ConditionCombine 建立）分割至各個視窗。"
+      }
+    },
+    "outputs": {
+      "0": {
+        "tooltip": "取樣時已套用上下文視窗的模型。"
+      }
+    }
+  },
   "MiniMaxH3FunControlNetApply": {
     "description": "將 MiniMax H3 Fun ControlNet 作為模型修補套用至文字轉影片模型。",
     "display_name": "套用 MiniMax H3 Fun ControlNet",
