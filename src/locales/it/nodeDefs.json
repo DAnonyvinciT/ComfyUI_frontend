@@ -6750,11 +6750,11 @@
   },
   "FluxVideoUpscaleNode": {
     "description": "Esegue l'upscale di un video da 1,5 a 3 volte con la super-risoluzione FLUX, preservando fedelmente la sorgente o migliorandone creativamente i dettagli.",
-    "display_name": "Upscale video Flux",
+    "display_name": "Upscaling video Flux (legacy)",
     "inputs": {
       "auto_downscale": {
         "name": "auto_downscale",
-        "tooltip": "Riduce automaticamente le sorgenti con un'area superiore a 3840x2160 pixel per rispettare il limite di input. Il rapporto d'aspetto viene mantenuto; i video più piccoli non vengono modificati."
+        "tooltip": "Ridimensiona automaticamente le sorgenti con un'area superiore a 2560x1440 pixel per rientrare nel limite di input. Le proporzioni vengono mantenute; i video più piccoli non vengono modificati."
       },
       "control_after_generate": {
         "name": "controllo dopo la generazione"
@@ -6782,6 +6782,48 @@
       "video": {
         "name": "video",
         "tooltip": "Clip sorgente da 1 a 20 secondi con un rapporto d'aspetto compreso tra 1:4 e 4:1. L'output viene renderizzato a 24 fps ed è limitato a circa 14,4 megapixel per fotogramma."
+      }
+    },
+    "outputs": {
+      "0": {
+        "tooltip": null
+      }
+    }
+  },
+  "FluxVideoUpscaleNodeV2": {
+    "description": "Esegue l'upscaling di un video a 1080p, 2K o 4K, oppure da 1,5 a 3 volte, con la super-risoluzione FLUX, preservando fedelmente la sorgente o migliorandone creativamente i dettagli.",
+    "display_name": "Upscaling video Flux",
+    "inputs": {
+      "auto_downscale": {
+        "name": "auto_downscale",
+        "tooltip": "Ridimensiona le sorgenti troppo grandi anziché rifiutarle: con un'area superiore a 2560x1440 pixel oppure oltre due terzi della risoluzione di destinazione (il fattore minimo è 1,5x). Le proporzioni vengono mantenute."
+      },
+      "control_after_generate": {
+        "name": "controllo dopo la generazione"
+      },
+      "mode": {
+        "name": "modalità",
+        "tooltip": "'creative' ripristina e inventa dettagli fini, ideale per filmati generati, texture e paesaggi. 'precise' rende più nitida la sorgente senza modificarla, per volti, prodotti e filmati reali."
+      },
+      "prompt": {
+        "name": "prompt",
+        "tooltip": "Descrizione facoltativa della clip che guida i dettagli migliorati. Lascia vuoto per un upscaling neutro."
+      },
+      "safety_tolerance": {
+        "name": "safety_tolerance",
+        "tooltip": "Tolleranza della moderazione; 0 è l'impostazione più restrittiva."
+      },
+      "seed": {
+        "name": "seed",
+        "tooltip": "Seed per determinare se il nodo deve essere rieseguito; FLUX sceglie il proprio seed, quindi i risultati effettivi non sono deterministici indipendentemente da questo valore."
+      },
+      "target_resolution": {
+        "name": "target_resolution",
+        "tooltip": "2K, 4K e 1080p adattano l'output entro 2560x1440, 3840x2160 o 1920x1080 (invertiti per clip verticali). Una sorgente troppo piccola per riempire l'area al massimo di 3x viene ingrandita di 3x e l'output risulta più piccolo."
+      },
+      "video": {
+        "name": "video",
+        "tooltip": "clip sorgente da 1 a 20 secondi con proporzioni comprese tra 1:4 e 4:1. L'output viene renderizzato a 24 fps e limitato a circa 14,4 megapixel per fotogramma."
       }
     },
     "outputs": {
@@ -10250,6 +10292,128 @@
       },
       "steps": {
         "name": "passi"
+      }
+    },
+    "outputs": {
+      "0": {
+        "tooltip": null
+      }
+    }
+  },
+  "Kling4EditVideoNode": {
+    "description": "Modifica un video con un prompt di testo e immagini e video di riferimento facoltativi. Il risultato ha la stessa durata del video di input.",
+    "display_name": "Kling 4.0 Modifica video",
+    "inputs": {
+      "control_after_generate": {
+        "name": "controllo dopo la generazione"
+      },
+      "model": {
+        "name": "modello"
+      },
+      "model_aspect_ratio": {
+        "name": "aspect_ratio"
+      },
+      "model_prompt": {
+        "name": "prompt"
+      },
+      "model_resolution": {
+        "name": "risoluzione"
+      },
+      "model_seed": {
+        "name": "seed"
+      }
+    },
+    "outputs": {
+      "0": {
+        "tooltip": null
+      }
+    }
+  },
+  "Kling4ImageToVideoNode": {
+    "description": "Genera un video con audio tramite un massimo di 10 fotogrammi chiave. I fotogrammi intermedi sono distribuiti uniformemente; il video adotta le proporzioni del primo fotogramma chiave.",
+    "display_name": "Kling 4.0 Da immagine a video",
+    "inputs": {
+      "control_after_generate": {
+        "name": "controllo dopo la generazione"
+      },
+      "model": {
+        "name": "modello"
+      },
+      "model_duration": {
+        "name": "durata"
+      },
+      "model_prompt": {
+        "name": "prompt"
+      },
+      "model_resolution": {
+        "name": "risoluzione"
+      },
+      "model_seed": {
+        "name": "seed"
+      }
+    },
+    "outputs": {
+      "0": {
+        "tooltip": null
+      }
+    }
+  },
+  "Kling4ReferenceToVideoNode": {
+    "description": "Genera un video con audio da immagini e video di riferimento, facoltativamente iniziando o terminando sui fotogrammi specificati.",
+    "display_name": "Kling 4.0 Da riferimento a video",
+    "inputs": {
+      "control_after_generate": {
+        "name": "controllo dopo la generazione"
+      },
+      "model": {
+        "name": "modello"
+      },
+      "model_aspect_ratio": {
+        "name": "aspect_ratio"
+      },
+      "model_duration": {
+        "name": "durata"
+      },
+      "model_prompt": {
+        "name": "prompt"
+      },
+      "model_resolution": {
+        "name": "risoluzione"
+      },
+      "model_seed": {
+        "name": "seme"
+      }
+    },
+    "outputs": {
+      "0": {
+        "tooltip": null
+      }
+    }
+  },
+  "Kling4TextToVideoNode": {
+    "description": "Genera un video con audio da un prompt di testo.",
+    "display_name": "Kling 4.0 Da testo a video",
+    "inputs": {
+      "control_after_generate": {
+        "name": "controllo dopo la generazione"
+      },
+      "model": {
+        "name": "modello"
+      },
+      "model_aspect_ratio": {
+        "name": "aspect_ratio"
+      },
+      "model_duration": {
+        "name": "durata"
+      },
+      "model_prompt": {
+        "name": "prompt"
+      },
+      "model_resolution": {
+        "name": "risoluzione"
+      },
+      "model_seed": {
+        "name": "seme"
       }
     },
     "outputs": {
@@ -15019,6 +15183,29 @@
       }
     }
   },
+  "MiniMaxH3LatentUpscaleWithModel": {
+    "description": "Ridimensiona il video di un latent MiniMax H3 con un modello di upscale latent; l'audio rimane invariato.",
+    "display_name": "Upscale latent MiniMax H3 con modello",
+    "inputs": {
+      "height": {
+        "name": "altezza"
+      },
+      "model": {
+        "name": "modello"
+      },
+      "samples": {
+        "name": "campioni"
+      },
+      "width": {
+        "name": "larghezza"
+      }
+    },
+    "outputs": {
+      "0": {
+        "tooltip": null
+      }
+    }
+  },
   "MiniMaxH3ReferenceToVideo": {
     "description": "<Picture i> / <Video k> / <Audio j> condizionamento di riferimento per MiniMax H3. Usa gli stessi tag durante la generazione del prompt.",
     "display_name": "MiniMax H3 Riferimento a Video",
@@ -18820,6 +19007,288 @@
     },
     "outputs": {
       "0": {
+        "tooltip": null
+      }
+    }
+  },
+  "PatinaMaterialExtractNode": {
+    "description": "Estrae un materiale PBR ripetibile senza giunzioni (immagine della texture + mappe PBR) da una regione di un'immagine di input, guidato da un prompt.",
+    "display_name": "Estrazione materiale Patina",
+    "inputs": {
+      "basecolor": {
+        "name": "basecolor",
+        "tooltip": "Genera la mappa basecolor (albedo)."
+      },
+      "control_after_generate": {
+        "name": "controllo dopo la generazione"
+      },
+      "height": {
+        "name": "altezza",
+        "tooltip": "Genera la mappa di altezza/spostamento."
+      },
+      "image": {
+        "name": "immagine",
+        "tooltip": "Immagine da cui estrarre una texture."
+      },
+      "image_size": {
+        "name": "image_size",
+        "tooltip": "Dimensione della texture di output. Scegli 'custom' per una larghezza/altezza compresa tra 512 e 2048 (un risultato 8K si ottiene effettuando l'upscale 4x delle mappe)."
+      },
+      "metalness": {
+        "name": "metalness",
+        "tooltip": "Genera la mappa di metallicità."
+      },
+      "normal": {
+        "name": "normal",
+        "tooltip": "Genera la mappa normale."
+      },
+      "num_inference_steps": {
+        "name": "num_passaggi_di_inferenza",
+        "tooltip": "Passaggi di denoising per la generazione della texture."
+      },
+      "prompt": {
+        "name": "prompt",
+        "tooltip": "Descrivi quale texture estrarre dall'immagine (ad es. \"il muro\")."
+      },
+      "prompt_expansion": {
+        "name": "espansione_prompt",
+        "tooltip": "Espande il prompt con un LLM per dettagli della texture più ricchi. Disattivata per impostazione predefinita: l'espansione riformula il prompt come una foto e tende ad attenuare la mappa di metalness."
+      },
+      "roughness": {
+        "name": "roughness",
+        "tooltip": "Genera la mappa di rugosità."
+      },
+      "safety_checker": {
+        "name": "controllo_di_sicurezza"
+      },
+      "seed": {
+        "name": "seme",
+        "tooltip": "Seed per una generazione riproducibile."
+      },
+      "strength": {
+        "name": "intensità",
+        "tooltip": "Quanto trasformare l'immagine di input."
+      },
+      "tile_size": {
+        "name": "dimensione_tile",
+        "tooltip": "Dimensione del tile nello spazio latent (64 = 512px, 128 = 1024px)."
+      },
+      "tile_stride": {
+        "name": "passo_tile",
+        "tooltip": "Passo del tile nello spazio latent."
+      },
+      "tiling_mode": {
+        "name": "modalità_di_tassellatura",
+        "tooltip": "Direzione di tassellatura: omnidirezionale, orizzontale o verticale."
+      },
+      "upscale_factor": {
+        "name": "upscale_factor",
+        "tooltip": "Upscale SeedVR senza giunzioni delle mappe PBR (la texture di base non viene sottoposta a upscale)."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "texture",
+        "tooltip": null
+      },
+      "1": {
+        "name": "colore_di_base",
+        "tooltip": null
+      },
+      "2": {
+        "name": "normale",
+        "tooltip": null
+      },
+      "3": {
+        "name": "ruvidità",
+        "tooltip": null
+      },
+      "4": {
+        "name": "metallicità",
+        "tooltip": null
+      },
+      "5": {
+        "name": "altezza",
+        "tooltip": null
+      },
+      "6": {
+        "name": "prompt_espanso",
+        "tooltip": null
+      }
+    }
+  },
+  "PatinaMaterialNode": {
+    "description": "Genera un materiale PBR completo e perfettamente tassellabile (immagine della texture + mappe PBR) da un prompt di testo, fino a 8K. Facoltativamente, puoi guidarlo con un'immagine di input (img2img) o un'immagine + mask (inpaint).",
+    "display_name": "Materiale Patina",
+    "inputs": {
+      "basecolor": {
+        "name": "colore_di_base",
+        "tooltip": "Genera la mappa basecolor (albedo)."
+      },
+      "control_after_generate": {
+        "name": "controllo dopo la generazione"
+      },
+      "height": {
+        "name": "altezza",
+        "tooltip": "Genera la mappa di altezza/spostamento."
+      },
+      "image": {
+        "name": "immagine",
+        "tooltip": "Immagine sorgente facoltativa. Fornita da sola = img2img; con una maschera = inpaint."
+      },
+      "image_size": {
+        "name": "dimensione_immagine",
+        "tooltip": "Dimensione della texture di output. Scegli 'custom' per una larghezza/altezza compresa tra 512 e 2048 (un risultato 8K deriva dall'upscaling 4x delle mappe)."
+      },
+      "mask": {
+        "name": "maschera",
+        "tooltip": "Maschera di inpaint facoltativa (richiede un'immagine). Bianco = rigenera, nero = mantieni."
+      },
+      "metalness": {
+        "name": "metallicità",
+        "tooltip": "Genera la mappa metalness."
+      },
+      "normal": {
+        "name": "normale",
+        "tooltip": "Genera la mappa normal."
+      },
+      "num_inference_steps": {
+        "name": "num_inference_steps",
+        "tooltip": "Passaggi di denoising per la generazione della texture."
+      },
+      "prompt": {
+        "name": "prompt",
+        "tooltip": "Descrivi il materiale/la texture da generare."
+      },
+      "prompt_expansion": {
+        "name": "prompt_expansion",
+        "tooltip": "Espande il prompt con un LLM per ottenere dettagli della texture più ricchi. Disattivato per impostazione predefinita: l'espansione riformula il prompt come una foto e tende ad attenuare la mappa di metallicità."
+      },
+      "roughness": {
+        "name": "ruvidità",
+        "tooltip": "Genera la mappa roughness."
+      },
+      "safety_checker": {
+        "name": "safety_checker"
+      },
+      "seed": {
+        "name": "seme",
+        "tooltip": "Seme per una generazione riproducibile."
+      },
+      "strength": {
+        "name": "intensità",
+        "tooltip": "Quanto trasformare l'immagine di input. Usato solo quando viene fornita un'immagine."
+      },
+      "tile_size": {
+        "name": "tile_size",
+        "tooltip": "Dimensione del riquadro nello spazio latente (64 = 512px, 128 = 1024px)."
+      },
+      "tile_stride": {
+        "name": "tile_stride",
+        "tooltip": "Passo del riquadro nello spazio latente."
+      },
+      "tiling_mode": {
+        "name": "tiling_mode",
+        "tooltip": "Direzione di piastrellatura: omnidirezionale, orizzontale o verticale."
+      },
+      "upscale_factor": {
+        "name": "fattore_di_upscaling",
+        "tooltip": "Upscaling SeedVR senza giunzioni delle mappe PBR (la texture di base non viene sottoposta a upscaling)."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "texture",
+        "tooltip": null
+      },
+      "1": {
+        "name": "colore di base",
+        "tooltip": null
+      },
+      "2": {
+        "name": "normale",
+        "tooltip": null
+      },
+      "3": {
+        "name": "ruvidità",
+        "tooltip": null
+      },
+      "4": {
+        "name": "metallicità",
+        "tooltip": null
+      },
+      "5": {
+        "name": "altezza",
+        "tooltip": null
+      },
+      "6": {
+        "name": "prompt espanso",
+        "tooltip": null
+      }
+    }
+  },
+  "PatinaPBRMapsNode": {
+    "description": "Genera mappe del materiale PBR (colore di base, normale, ruvidità, metallicità, altezza) da un'immagine di texture.",
+    "display_name": "Mappe del materiale PBR Patina",
+    "inputs": {
+      "auto_downscale": {
+        "name": "auto_downscale",
+        "tooltip": "Ridimensiona automaticamente un'immagine di input il cui lato più lungo supera 2048 px (il limite di input del modello), preservando le proporzioni; le immagini più piccole restano invariate. Disabilita questa opzione per generare invece un errore per immagini sovradimensionate."
+      },
+      "basecolor": {
+        "name": "colore di base",
+        "tooltip": "Genera la mappa del colore di base (albedo)."
+      },
+      "control_after_generate": {
+        "name": "controllo dopo la generazione"
+      },
+      "height": {
+        "name": "altezza",
+        "tooltip": "Genera la mappa di altezza/displacement."
+      },
+      "image": {
+        "name": "immagine",
+        "tooltip": "Fotografia o render di input da cui ricavare le mappe PBR."
+      },
+      "metalness": {
+        "name": "metallicità",
+        "tooltip": "Genera la mappa di metallicità."
+      },
+      "normal": {
+        "name": "normale",
+        "tooltip": "Genera la mappa delle normali."
+      },
+      "roughness": {
+        "name": "ruvidità",
+        "tooltip": "Genera la mappa di ruvidità."
+      },
+      "safety_checker": {
+        "name": "safety_checker"
+      },
+      "seed": {
+        "name": "seme",
+        "tooltip": "Seme per un denoising riproducibile."
+      }
+    },
+    "outputs": {
+      "0": {
+        "name": "colore di base",
+        "tooltip": null
+      },
+      "1": {
+        "name": "normale",
+        "tooltip": null
+      },
+      "2": {
+        "name": "ruvidità",
+        "tooltip": null
+      },
+      "3": {
+        "name": "metallicità",
+        "tooltip": null
+      },
+      "4": {
+        "name": "altezza",
         "tooltip": null
       }
     }
@@ -28429,6 +28898,33 @@
       "video": {
         "name": "video",
         "tooltip": "Video con una traccia audio parlata, di durata inferiore a 30 minuti."
+      }
+    },
+    "outputs": {
+      "0": {
+        "tooltip": null
+      }
+    }
+  },
+  "VeedDubbingNode": {
+    "description": "Traduce il parlato di un video in un'altra lingua con VEED. La voce di ogni interlocutore viene clonata e le labbra vengono sincronizzate con la traduzione.",
+    "display_name": "Doppiaggio VEED",
+    "inputs": {
+      "control_after_generate": {
+        "name": "controllo dopo la generazione"
+      },
+      "model": {
+        "name": "modello",
+        "tooltip": "standard: prezzo inferiore, audio mono; lo spagnolo è latinoamericano e il portoghese è brasiliano. pro: accenti regionali e audio stereo."
+      },
+      "model_seed": {
+        "name": "seme"
+      },
+      "model_source_language": {
+        "name": "lingua_sorgente"
+      },
+      "model_target_language": {
+        "name": "lingua_destinazione"
       }
     },
     "outputs": {
